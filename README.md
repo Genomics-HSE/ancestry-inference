@@ -1,1 +1,1 @@
-# Supplementary materials for the paper
+# Supplementary code for the paper
