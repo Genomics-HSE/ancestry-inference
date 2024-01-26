@@ -1,1 +1,1 @@
-# 2024ancestry-inference
+# Supplementary materials for the paper
