@@ -141,15 +141,9 @@ if __name__=="__main__":
     itercount = 100
     
     rng = np.random.default_rng(2023)
-    datapath = "../datasets-genotek/"
-    dataset1fname = datapath+"NC_graph_rel.csv"
+    datapath = "../datasets/"
+    dataset1fname = datapath+"dataset.csv"
     #dataset1fname = datapath+"Western-Europe_weights_partial_labels.csv"
     # test1: random partitions
     print("\n test1: generated partitions")
     run(rng, dataset1fname, valshare, testshare, itercount)
-        
-    # test2: specified partitions    
-    #print("\n test2: loaded partitions")
-    #from ncpartitionsamples import partitionsdf    
-    #run(rng, dataset1fname, valshare, testshare, itercount, partitionsdf)
-    #run(rng, dataset1fname, valshare, testshare, itercount, partitionsconseq, conseq=True)
