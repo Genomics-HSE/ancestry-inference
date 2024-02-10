@@ -255,17 +255,17 @@ def getfeatures(G, testnodes, nodeclasses, labeldict,  pairs, translation ):
 
     result = {}
     result.update({"SegmentCount": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
-                                   "comment":"Число ребер до класса"} })
+                                   "comment":"number of edges from node to population"} })
     result.update({"SegmentCountPerClassize": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
-                                              "comment":"Число ребер до класса на размер класса"} })
+                                              "comment":"number of edges from node to population per population size"} })
     result.update({"SegmentCountWMult": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
-                                        "comment":"Число ребер до класса с учетом сегментов"} })
+                                        "comment":"number of shared ibd segments between node and population"} })
     result.update({"LongestIbd": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
-                                 "comment":"Самый длинный сегмент"} })
+                                 "comment":"longest shared ibd segment between node and population"} })
     result.update({"IbdSum": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
-                             "comment":"Сумма IBD до класса"} })
+                             "comment":"sum of shared ibd segment lengths between node and population"} })
     result.update({"IbdSumPerEdge": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
-                                    "comment":"Сумма IBD до класса на ребро"} })
+                                    "comment":"sum of shared ibd segment lengths between node and population per edge count"} })
 
     for nd in testnodes:
         #get links to every class
