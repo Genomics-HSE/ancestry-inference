@@ -16,8 +16,10 @@ def collectparams(folder):
     return dummy
 
     
-def collectandsaveparams(folder, outfile):
+def collectandsaveparams(folder, outfile, override_popsizes):
     print(f"Collecting parameters for datasets from {folder}")
+    if not(override_popsizes is None):
+        print(f"Will save population sizes = {override_popsizes} instead of original")
     collected = collectparams(folder)    
     with open(outfile,"w") as f:
         json.dump(collected,f)

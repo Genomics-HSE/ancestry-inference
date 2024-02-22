@@ -17,10 +17,11 @@ def cli():
 
 @cli.command()
 @click.argument("folder")
+@click.option("--override_popsizes", default=None, help="Output file.")
 @click.option("--out", default="paramfile.json", help="Output file.")
-def getparams(folder, out):
+def getparams(folder, out, override_popsizes):
     """Collect parameters of all csv files in the FOLDER"""    
-    sim.collectandsaveparams(folder, out)
+    sim.collectandsaveparams(folder, out, override_popsizes)
 
     
 @cli.command()
