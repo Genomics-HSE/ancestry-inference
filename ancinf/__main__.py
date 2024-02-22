@@ -1,3 +1,3 @@
-from .pipeline import main
+from .ancinf import main
 
 main()
