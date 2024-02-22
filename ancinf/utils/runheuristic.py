@@ -5,8 +5,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import time
 
-import ibdloader
-import baseheuristic as bh
+from . import ibdloader
+from . import baseheuristic as bh
 
 
 
