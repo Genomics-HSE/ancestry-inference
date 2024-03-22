@@ -58,6 +58,10 @@ def show_prediction(labels, prediction, display_labels, exp_title):
     
     
 def getIntBoundary(G, group):
+    '''
+        for every node in the group we collect ibd sum to the rest of the group
+        also we return number of edges where evey edge is counted twice
+    '''
     distr = []
     edgecount = 0
     for node in group:
@@ -70,6 +74,10 @@ def getIntBoundary(G, group):
     return distr, edgecount
 
 def getExtBoundary(G, group1, group2):
+    '''
+        for every node in the group1 we collect ibd sum to the group 2
+        also we return number of edges between group1 and group2
+    '''
     distr = []
     edgecount = 0
     for node in group1:
@@ -82,6 +90,32 @@ def getExtBoundary(G, group1, group2):
     return distr, edgecount
 
 def getweightandcountmatrices(G, nodeclasses, labeldict, plot_distr = False):
+    '''
+         compute edge distributon parameters:
+         total weigth and
+         total count
+         
+    Parameters
+    ----------
+    G: nx graph
+        input graph
+    nodeclasses: dict
+        population:list of nodes
+    labeldict: dictionary
+        contains int index of every text label
+    plot_distr: bool
+        interactive output with plots
+    
+    Returns
+    -------
+    weimatrix: 2d np array
+        sum of edge weights
+    countmatrix: 2d np array
+        number of edges
+    distributions: dict
+        label or pair of labels:edge weights
+    '''
+    
     labelcount = len(labeldict)
     weimatrix = np.zeros((labelcount,labelcount))
     countmatrix = np.zeros((labelcount,labelcount))
@@ -93,15 +127,19 @@ def getweightandcountmatrices(G, nodeclasses, labeldict, plot_distr = False):
         if plot_distr:
             plot_distribution(np.array(intdistr), 1000, f"Distribution of ibd sum for {label}")
             print("------------------------------------------------------------------------")
+        
+        
         weimatrix[labeldict[label], labeldict[label] ] = np.sum(intdistr)
-        countmatrix[labeldict[label], labeldict[label] ] = ec /2
+        
+        countmatrix[labeldict[label], labeldict[label] ] = ec /2 #in ec every edge is counted twice
+        
         distributions[label] = {"data":np.array(intdistr), "threshold":None, "bins":'auto'}
 
-    for baselabel in labeldict:    
-        for destlabel in labeldict:        
+    for baselabel in labeldict:
+        for destlabel in labeldict:
             if destlabel!= baselabel:
                 #print(f"from {baselabel} to {destlabel}")
-                intdistr, ec = getExtBoundary(G, nodeclasses[baselabel], nodeclasses[destlabel] )   
+                intdistr, ec = getExtBoundary(G, nodeclasses[baselabel], nodeclasses[destlabel] )
                 weimatrix[labeldict[destlabel], labeldict[baselabel] ] = np.sum(intdistr)
                 countmatrix[labeldict[destlabel], labeldict[baselabel] ] = ec
                 distributions[baselabel+"_to_"+destlabel] = {"data":np.array(intdistr), "threshold":None, "bins":'auto'}
@@ -109,6 +147,49 @@ def getweightandcountmatrices(G, nodeclasses, labeldict, plot_distr = False):
                     plot_distribution(np.array(intdistr), 1000, f"Distribution of ibd sum for {baselabel} to {destlabel} ")
                     print("------------------------------------------------------------------------")   
     return weimatrix, countmatrix, distributions
+
+def getprobandmeanmatrices(G, nodeclasses, labeldict):
+    '''
+         Generate edge distributon parameters:
+         mean ibdsum on the edge between classes
+         and probability of the edge
+         
+    Parameters
+    ----------
+    G: nx graph 
+        input graph
+    nodeclasses: dict
+        population:list of nodes    
+    labeldict: dictionary
+        contains int index of every text label
+    
+    Returns
+    ----------
+    weimatrix: 2d np array 
+        sum of edge weights divided by number of edges (mean edge weight)
+    countmatrix: 2d np array
+        number of edges divided by total possible edges (probability of the edge)
+    '''
+    
+    labelcount = len(labeldict)
+    weimatrix = np.zeros((labelcount,labelcount))
+    countmatrix = np.zeros((labelcount,labelcount))
+   
+    for label in labeldict:
+        intdistr, ec = getIntBoundary(G, nodeclasses[label] )
+        weimatrix[labeldict[label], labeldict[label] ] = np.sum(intdistr)/ec
+        maxpossibleedges = len(nodeclasses[label])*(len(nodeclasses[label])-1) / 2
+        countmatrix[labeldict[label], labeldict[label] ] = ec / 2 / maxpossibleedges 
+
+    for baselabel in labeldict:
+        for destlabel in labeldict:
+            if destlabel!= baselabel:
+                intdistr, ec = getExtBoundary(G, nodeclasses[baselabel], nodeclasses[destlabel])
+                weimatrix[labeldict[destlabel], labeldict[baselabel] ] = np.sum(intdistr)/ec
+                maxpossibleedges = len(nodeclasses[baselabel])*len(nodeclasses[destlabel])
+                countmatrix[labeldict[destlabel], labeldict[baselabel] ] = ec/maxpossibleedges
+                
+    return weimatrix, countmatrix
 
 
 
@@ -160,7 +241,7 @@ def composegraphs(pairs, weights, labels, labeldict, translation, train=None, te
         translation: i-th element is dataset node code of the node i in the graph
         labels: i-th element is label of the node i in the graph
         nodeclasses: dictionary with graph nodes (starting from 0 and consequtive) grouped by label
-        '''
+    '''
     if train is None:
         #only full graph
         goodpairs, goodweights = translate_and_filter(pairs, weights, translation)
