@@ -37,6 +37,110 @@ from torch_geometric.nn import GCNConv, GATConv, TransformerConv, NNConv, SGConv
 EdgeConv, FiLMConv, FastRGCNConv, SSGConv, SAGEConv, GATv2Conv, BatchNorm, GraphNorm, MemPooling, SAGPooling
 
 
+def symmetrize(m):
+    return m + m.T - np.diag(m.diagonal())
+
+
+def generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng):
+    '''
+        main simulation function
+    
+    Parameters
+    ----------
+    population_sizes: list 
+        list of population sizes
+    offset: float
+        we assume ibdsum pdf = lam*exp(-lam*(x-offset)) for x>offset and 0 otherwise, lam = 1/mean
+    edge_probs: 2d array
+        probability of an edge between classes
+    mean_weight: 2d array
+        mean weight of an existing edge between classes (corrected by offset)
+    rng: random number generator
+    
+    Returns
+    -------
+    counts: 
+        
+    sums: 
+        
+    pop_index: 1d np array
+        population index of every node
+        
+    '''
+    p = edge_probs
+    teta = mean_weight
+    pop_index = []
+    n_pops = len(population_sizes)
+    for i in range(n_pops):
+        pop_index += [i] * population_sizes[i]
+
+    pop_index = np.array(pop_index)
+    print(f"{n_pops=}")
+    blocks_sums = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for j in range(n_pops)] for i in
+                   range(n_pops)]
+    blocks_counts = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for j in range(n_pops)] for i
+                     in range(n_pops)]
+
+    #print(np.array(blocks_sums).shape)
+
+    for pop_i in range(n_pops):
+        for pop_j in range(pop_i + 1):
+            if p[pop_i, pop_j] == 0:
+                continue
+            print(f"{pop_i=} {pop_j=}")
+            pop_cross = population_sizes[pop_i] * population_sizes[pop_j]
+            bern_samples = bernoulli.rvs(p[pop_i, pop_j], size=pop_cross)
+            total_segments = np.sum(bern_samples)
+            print(f"{total_segments=}")
+            exponential_samples = np.random.exponential(teta[pop_i, pop_j], size=total_segments) + offset
+            #position = 0
+            exponential_totals_samples = np.zeros(pop_cross, dtype=np.float64)
+            #mean_totals_samples = np.zeros(pop_cross, dtype=np.float64)
+            exponential_totals_samples[bern_samples == 1] = exponential_samples
+
+            bern_samples = np.reshape(bern_samples, newshape=(population_sizes[pop_i], population_sizes[pop_j]))
+            exponential_totals_samples = np.reshape(exponential_totals_samples,
+                                                    newshape=(population_sizes[pop_i], population_sizes[pop_j]))
+            if (pop_i == pop_j):
+                bern_samples = np.tril(bern_samples, -1)
+                exponential_totals_samples = np.tril(exponential_totals_samples, -1)
+            blocks_counts[pop_i][pop_j] = bern_samples
+            blocks_sums[pop_i][pop_j] = exponential_totals_samples
+    
+    
+    full_blocks_counts = np.block(blocks_counts)
+    full_blocks_sums = np.block(blocks_sums)
+    return np.nan_to_num(symmetrize(full_blocks_counts)), np.nan_to_num(symmetrize(full_blocks_sums)), pop_index
+
+
+def simulate_graph_fn(classes, means, counts, pop_index, path):
+    '''
+        store simulated dataframe
+    
+    Parameters
+    ----------
+    classes: list of str
+        names of populations
+    means: 2d np array
+        0: no link between i-th and j-th individuals
+    counts: 2d np array
+        ibd sum between i-th and j-th individuals
+    pop_index: 1d np array
+        population index of every node
+    path: string
+        csv file to store dataframe
+    '''
+    indiv = list(range(counts.shape[0]))
+    with open(path, 'w', encoding="utf-8") as f:
+        f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+        for i in range(counts.shape[0]):
+            for j in range(i):
+                if (counts[i][j]):
+                    name_i = classes[pop_index[i]] if "," not in classes[pop_index[i]] else '\"' + classes[pop_index[i]] + '\"'
+                    name_j = classes[pop_index[j]] if "," not in classes[pop_index[j]] else '\"' + classes[pop_index[j]] + '\"'
+                    f.write(f'node_{i},node_{j},{name_i},{name_j},{means[i][j]},{counts[i][j]}\n')
+
+
 
 class DataProcessor:
     def __init__(self, path):
@@ -58,6 +162,7 @@ class DataProcessor:
         self.array_of_graphs_for_training = []
         self.array_of_graphs_for_validation = []
         self.array_of_graphs_for_testing = []
+        self.rng = np.random.default_rng(seed)
         
     def get_classes(self, df):
         # return ['карачаевцы,балкарцы', 'осетины', 'кабардинцы,черкесы,адыгейцы','ингуши','кумыки','ногайцы','чеченцы','дагестанские народы']
@@ -341,63 +446,13 @@ class DataProcessor:
                     all_possible_connections = num_nodes_class_1 * num_nodes_class_2
                 self.edge_probs[i, j] = real_connections / all_possible_connections
 
-    def symmetrize(self, m):
-        return m + m.T - np.diag(m.diagonal())
+    
 
     def generate_matrices(self, population_sizes):
-        p = self.edge_probs
-        teta = self.mean_weight
-        pop_index = []
-        n_pops = len(population_sizes)
-        for i in range(n_pops):
-            pop_index += [i] * population_sizes[i]
-
-        pop_index = np.array(pop_index)
-        print(f"{n_pops=}")
-        blocks_sums = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for i in range(n_pops)] for j in
-                       range(n_pops)]
-        blocks_counts = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for i in range(n_pops)] for j
-                         in range(n_pops)]
-
-        print(np.array(blocks_sums).shape)
-
-        for pop_i in range(n_pops):
-            for pop_j in range(pop_i + 1):
-                if p[pop_i, pop_j] == 0:
-                    continue
-                print(f"{pop_i=} {pop_j=}")
-                pop_cross = population_sizes[pop_i] * population_sizes[pop_j]
-                bern_samples = bernoulli.rvs(p[pop_i, pop_j], size=pop_cross)
-                total_segments = np.sum(bern_samples)
-                print(f"{total_segments=}")
-                exponential_samples = np.random.exponential(teta[pop_i, pop_j], size=total_segments) + self.offset
-                position = 0
-                exponential_totals_samples = np.zeros(pop_cross, dtype=np.float64)
-                mean_totals_samples = np.zeros(pop_cross, dtype=np.float64)
-                exponential_totals_samples[bern_samples == 1] = exponential_samples
-
-                bern_samples = np.reshape(bern_samples, newshape=(population_sizes[pop_i], population_sizes[pop_j]))
-                exponential_totals_samples = np.reshape(exponential_totals_samples,
-                                                        newshape=(population_sizes[pop_i], population_sizes[pop_j]))
-                if (pop_i == pop_j):
-                    bern_samples = np.tril(bern_samples, -1)
-                    exponential_totals_samples = np.tril(exponential_totals_samples, -1)
-                blocks_counts[pop_i][pop_j] = bern_samples
-                blocks_sums[pop_i][pop_j] = exponential_totals_samples
-        return np.nan_to_num(self.symmetrize(np.block(blocks_counts))), np.nan_to_num(
-            self.symmetrize(np.block(blocks_sums))), pop_index
-
+        generate_matrices_fn(population_sizes, self.offset, self.edge_probs, self.mean_weight, self.rng)
+        
     def simulate_graph(self, means, counts, pop_index, path):
-        indiv = list(range(counts.shape[0]))
-        with open(path, 'w', encoding="utf-8") as f:
-            f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum\n')
-            for i in range(counts.shape[0]):
-                for j in range(i):
-                    if (means[i][j]):
-                        name_i = self.classes[pop_index[i]] if "," not in self.classes[pop_index[i]] else '\"' + self.classes[pop_index[i]] + '\"'
-                        name_j = self.classes[pop_index[j]] if "," not in self.classes[pop_index[j]] else '\"' + self.classes[pop_index[j]] + '\"'
-                        f.write(f'node_{i},node_{j},{name_i},{name_j},{counts[i][j]}\n')
-
+        simulate_graph_fn(self.classes, means, counts, pop_index, path)        
         # remove isolated nodes
         # G.remove_nodes_from(list(nx.isolates(G)))
 

@@ -150,7 +150,7 @@ def getweightandcountmatrices(G, nodeclasses, labeldict, plot_distr = False):
 
 def getprobandmeanmatrices(G, nodeclasses, labeldict):
     '''
-         Generate edge distributon parameters:
+         compute edge distributon parameters:
          mean ibdsum on the edge between classes
          and probability of the edge
          
@@ -159,7 +159,7 @@ def getprobandmeanmatrices(G, nodeclasses, labeldict):
     G: nx graph 
         input graph
     nodeclasses: dict
-        population:list of nodes    
+        {population_i:[list of nodes]}
     labeldict: dictionary
         contains int index of every text label
     
@@ -172,22 +172,31 @@ def getprobandmeanmatrices(G, nodeclasses, labeldict):
     '''
     
     labelcount = len(labeldict)
-    weimatrix = np.zeros((labelcount,labelcount))
-    countmatrix = np.zeros((labelcount,labelcount))
+    weimatrix = np.zeros((labelcount,labelcount)) #mean weight
+    countmatrix = np.zeros((labelcount,labelcount)) #edge probability
    
     for label in labeldict:
         intdistr, ec = getIntBoundary(G, nodeclasses[label] )
-        weimatrix[labeldict[label], labeldict[label] ] = np.sum(intdistr)/ec
-        maxpossibleedges = len(nodeclasses[label])*(len(nodeclasses[label])-1) / 2
-        countmatrix[labeldict[label], labeldict[label] ] = ec / 2 / maxpossibleedges 
+        if ec>0:
+            weimatrix[labeldict[label], labeldict[label] ] = np.sum(intdistr)/ec
+            maxpossibleedges = len(nodeclasses[label])*(len(nodeclasses[label])-1) / 2            
+            countmatrix[labeldict[label], labeldict[label] ] = ec / 2 / maxpossibleedges             
+        else:
+            weimatrix[labeldict[label], labeldict[label] ] = -1
+            countmatrix[labeldict[label], labeldict[label] ] = 0
+            
 
     for baselabel in labeldict:
         for destlabel in labeldict:
             if destlabel!= baselabel:
                 intdistr, ec = getExtBoundary(G, nodeclasses[baselabel], nodeclasses[destlabel])
-                weimatrix[labeldict[destlabel], labeldict[baselabel] ] = np.sum(intdistr)/ec
-                maxpossibleedges = len(nodeclasses[baselabel])*len(nodeclasses[destlabel])
-                countmatrix[labeldict[destlabel], labeldict[baselabel] ] = ec/maxpossibleedges
+                if ec>0:
+                    weimatrix[labeldict[destlabel], labeldict[baselabel] ] = np.sum(intdistr)/ec
+                    maxpossibleedges = len(nodeclasses[baselabel])*len(nodeclasses[destlabel])
+                    countmatrix[labeldict[destlabel], labeldict[baselabel] ] = ec/maxpossibleedges
+                else:
+                    weimatrix[labeldict[destlabel], labeldict[baselabel] ] = -1
+                    countmatrix[labeldict[destlabel], labeldict[baselabel] ] = 0
                 
     return weimatrix, countmatrix
 
