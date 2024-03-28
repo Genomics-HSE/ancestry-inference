@@ -449,7 +449,7 @@ class DataProcessor:
     
 
     def generate_matrices(self, population_sizes):
-        generate_matrices_fn(population_sizes, self.offset, self.edge_probs, self.mean_weight, self.rng)
+        return generate_matrices_fn(population_sizes, self.offset, self.edge_probs, self.mean_weight, self.rng)
         
     def simulate_graph(self, means, counts, pop_index, path):
         simulate_graph_fn(self.classes, means, counts, pop_index, path)        
