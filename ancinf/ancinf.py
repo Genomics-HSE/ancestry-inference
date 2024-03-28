@@ -1,4 +1,5 @@
 import click
+import numpy as np
 
 from .utils import simulate as sim 
 from .utils import runheuristic
@@ -32,6 +33,17 @@ def simulate(paramfile, folder, seed):
     """Generate ibd graphs for parameters in PARAMFILE"""    
     sim.simulateandsave(paramfile, folder, seed)
 
+@cli.command()
+@click.argument("filename")
+@click.option("--seed", default=2023, help="Random seed.")
+def heuristics(filename, seed):
+    """Run heuristics for"""    
+    valshare = 0.2
+    testshare = 0.2
+    itercount = 10    
+    rng = np.random.default_rng(seed)
+    runheuristic.run(rng, filename, valshare, testshare, itercount)
+    
     
 
 def main():

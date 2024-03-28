@@ -1,6 +1,6 @@
 ## Graph neural network application for accurate ancestry inference from Identity by Descent Graphs
 
-Supplementary code for the paper submitted to the ICLR2024 Workshop MLGenX
+Supplementary code for the paper submitted to the ICLR2024 Workshop MLGenX 
 
 As the datasets with customer data can not be made publicly available, we present the pipline that duplicates all the inference stages but is preceded by simulation stage based on significant parameters of original datasets.
 

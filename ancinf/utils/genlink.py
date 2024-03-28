@@ -138,7 +138,8 @@ def simulate_graph_fn(classes, means, counts, pop_index, path):
                 if (counts[i][j]):
                     name_i = classes[pop_index[i]] if "," not in classes[pop_index[i]] else '\"' + classes[pop_index[i]] + '\"'
                     name_j = classes[pop_index[j]] if "," not in classes[pop_index[j]] else '\"' + classes[pop_index[j]] + '\"'
-                    f.write(f'node_{i},node_{j},{name_i},{name_j},{means[i][j]},{counts[i][j]}\n')
+                    #f.write(f'node_{i},node_{j},{name_i},{name_j},{means[i][j]},{counts[i][j]}\n')
+                    f.write(f'node_{i},node_{j},{name_i},{name_j},{means[i][j]},1\n')
 
 
 
