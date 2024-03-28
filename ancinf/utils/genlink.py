@@ -12,7 +12,6 @@ from sklearn import metrics
 from numba import njit, prange
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
-from scipy.stats import bernoulli
 from sklearn.metrics import f1_score
 from sklearn.model_selection import KFold
 from torch.optim.lr_scheduler import StepLR
@@ -89,10 +88,11 @@ def generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng)
                 continue
             print(f"{pop_i=} {pop_j=}")
             pop_cross = population_sizes[pop_i] * population_sizes[pop_j]
+            #TODO switch to rng.binomial or something
             bern_samples = bernoulli.rvs(p[pop_i, pop_j], size=pop_cross)
             total_segments = np.sum(bern_samples)
             print(f"{total_segments=}")
-            exponential_samples = np.random.exponential(teta[pop_i, pop_j], size=total_segments) + offset
+            exponential_samples = rng.exponential(teta[pop_i, pop_j], size=total_segments) + offset
             #position = 0
             exponential_totals_samples = np.zeros(pop_cross, dtype=np.float64)
             #mean_totals_samples = np.zeros(pop_cross, dtype=np.float64)
