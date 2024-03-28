@@ -28,7 +28,7 @@ def getparams(folder, out, override_popsizes):
 @click.argument("paramfile")
 @click.option("--folder", default=".", help="Output folder.")
 @click.option("--seed", default=2023, help="Random seed.")
-def simulate(paramfile, folder):
+def simulate(paramfile, folder, seed):
     """Generate ibd graphs for parameters in PARAMFILE"""    
     sim.simulateandsave(paramfile, folder, seed)
 
