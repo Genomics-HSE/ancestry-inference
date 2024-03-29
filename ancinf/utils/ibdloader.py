@@ -17,7 +17,7 @@ def removeweakclasses(df, weaklabels):
         df.drop(df[df['label_id2']==c].index, inplace=True)
         
 
-def getuniqnodes(df, dftype):
+def getuniqnodes(df, dftype, debug=True):
     df1 =  \
     df[['node_id1','label_id1']].rename(columns={'node_id1':'node_id','label_id1':'label_id'})
     df2 =  \
@@ -26,9 +26,10 @@ def getuniqnodes(df, dftype):
     nodecount = uniqnodes.shape[0]
     uniqids = uniqnodes.drop_duplicates('node_id')
     idcount = uniqids.shape[0]
-    if nodecount!=idcount:
-        print(f"WARNING! inconsistent labels in {dftype} datafile")
-    print(f"Unique ids in {dftype} datafile: {idcount}")
+    if debug:
+        if nodecount!=idcount:
+            print(f"WARNING! inconsistent labels in {dftype} datafile")
+        print(f"Unique ids in {dftype} datafile: {idcount}")
     return uniqids
     
 def checkuniqids(uniqids):
@@ -42,7 +43,7 @@ def checkuniqids(uniqids):
     else:
         print("WARNING: ids are not consequtive, must be translated!")
 
-def load_pure(datafilename, minclassize=None, removeclasses=None):
+def load_pure(datafilename, minclassize=None, removeclasses=None, debug=True):
     '''Verify and load files from dataset1 pure format
         into numpy arrays
     
@@ -72,8 +73,9 @@ def load_pure(datafilename, minclassize=None, removeclasses=None):
     stripnodename(dfibd)
     if not(removeclasses is None):
         removeweakclasses(dfibd, removeclasses)   
-    uniqids = getuniqnodes(dfibd, 'ibd')
-    checkuniqids(uniqids)
+    uniqids = getuniqnodes(dfibd, 'ibd', debug)
+    if debug:
+        checkuniqids(uniqids)
     uniqids = uniqids.sort_values(by=['node_id'])
     
     labeldf = uniqids[['label_id']].drop_duplicates()
@@ -86,7 +88,8 @@ def load_pure(datafilename, minclassize=None, removeclasses=None):
         lbl += 1        
     
     if not (minclassize is None):
-        print("Filter out all classes smaller than ", minclassize)
+        if debug:
+            print("Filter out all classes smaller than ", minclassize)
         #count and filter out rare label_id
         powerlabels = []
         powerlabelcount = []
@@ -102,22 +105,26 @@ def load_pure(datafilename, minclassize=None, removeclasses=None):
                 powerlabelcount.append(count)
         weakargs = np.argsort(weaklabelcount)
         powerargs = np.argsort(powerlabelcount)
-        print("Removing following classes:")
+        if debug:
+            print("Removing following classes:")
         totalweak = 0
         for idx in range(len(weakargs)):        
             sids = weakargs[idx]
             totalweak += weaklabelcount[sids]
-            print(weaklabels[sids], weaklabelcount[sids])
-        print("Total", totalweak, "removed")
-        print("Remaining classes:")
+            if debug:
+                print(weaklabels[sids], weaklabelcount[sids])
+        if debug:
+            print("Total", totalweak, "removed")
+            print("Remaining classes:")
         for idx in range(len(powerargs)):        
             sids = powerargs[idx]
-            print(powerlabels[sids], powerlabelcount[sids])
+            if debug:
+                print(powerlabels[sids], powerlabelcount[sids])
 
         #remove rare from uniqids
         removeweakclasses(dfibd, weaklabels)
 
-        uniqids = getuniqnodes(dfibd, 'ibd')
+        uniqids = getuniqnodes(dfibd, 'ibd', debug)
         checkuniqids(uniqids)
         uniqids = uniqids.sort_values(by=['node_id'])
 
@@ -130,7 +137,8 @@ def load_pure(datafilename, minclassize=None, removeclasses=None):
             labeldict[powerlabels[idx]] = lbl
             lbl += 1        
     
-    print("Label dictionary:", labeldict)
+    if debug:
+        print("Label dictionary:", labeldict)
     #create labels array
     labels = uniqids['label_id'].apply(lambda x:labeldict[x]).to_numpy()    
     idxtranslator = uniqids['node_id'].to_numpy()    
@@ -140,11 +148,12 @@ def load_pure(datafilename, minclassize=None, removeclasses=None):
     dfnodepairs = dfibd[['node_id1', 'node_id2']]
     paircount = dfnodepairs.shape[0]
     uniqpaircount = dfnodepairs.drop_duplicates().shape[0]
-    print(f"paircount: {paircount}, unique: {uniqpaircount}")
-    if paircount!=uniqpaircount:
-        print("Not OK: duplicate pairs")
-    else:
-        print("OK: all pairs are unique")
+    if debug:
+        print(f"paircount: {paircount}, unique: {uniqpaircount}")
+        if paircount!=uniqpaircount:
+            print("Not OK: duplicate pairs")
+        else:
+            print("OK: all pairs are unique")
     
     pairs = dfibd[['node_id1', 'node_id2', 'ibd_n']].to_numpy()
     #todo order pairs

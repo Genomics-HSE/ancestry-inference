@@ -74,7 +74,7 @@ def generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng)
         pop_index += [i] * population_sizes[i]
 
     pop_index = np.array(pop_index)
-    print(f"{n_pops=}")
+    #print(f"{n_pops=}")
     blocks_sums = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for j in range(n_pops)] for i in
                    range(n_pops)]
     blocks_counts = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for j in range(n_pops)] for i
@@ -86,12 +86,12 @@ def generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng)
         for pop_j in range(pop_i + 1):
             if p[pop_i, pop_j] == 0:
                 continue
-            print(f"{pop_i=} {pop_j=}")
+            #print(f"{pop_i=} {pop_j=}")
             pop_cross = population_sizes[pop_i] * population_sizes[pop_j]
             #TODO switch to rng.binomial or something
             bern_samples = bernoulli.rvs(p[pop_i, pop_j], size=pop_cross)
             total_segments = np.sum(bern_samples)
-            print(f"{total_segments=}")
+            #print(f"{total_segments=}")
             exponential_samples = rng.exponential(teta[pop_i, pop_j], size=total_segments) + offset
             #position = 0
             exponential_totals_samples = np.zeros(pop_cross, dtype=np.float64)

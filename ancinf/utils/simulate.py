@@ -91,6 +91,14 @@ def collectandsaveparams(folder, outfile, override_popsizes):
     with open(outfile,"w") as f:
         json.dump(collected,f, indent=4, sort_keys=True)
 
+
+def simulateandsaveoneparam(params, offset, fname, rng):        
+    population_sizes = params["pop_sizes"]        
+    edge_probs = np.array(params["edge_probability"])
+    mean_weight = np.array(params["mean_weight"]) - offset #the next function wants corrected mean weights
+    classes = params["pop_names"]
+    counts, means, pop_index = generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng) 
+    simulate_graph_fn(classes, means, counts, pop_index, fname)
         
 
 def simulateandsave(paramfile, outfolder, seed):
@@ -98,17 +106,13 @@ def simulateandsave(paramfile, outfolder, seed):
     print(f"Running simulations for parameters from {paramfile}")
     #create separate csv file for every record in paramfile 
     with open(paramfile,'r') as f:
-        dct = json.load(f)
+        dct = json.load(f)    
     for csvname in dct:
         fname = os.path.join(outfolder, 'sim'+csvname)
         params = dct[csvname]
-        population_sizes = params["pop_sizes"]        
         offset = OFFSET
-        edge_probs = np.array(params["edge_probability"])
-        mean_weight = np.array(params["mean_weight"]) - offset #the next function wants corrected mean weights
-        classes = params["pop_names"]
-        counts, means, pop_index = generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng)                
-        simulate_graph_fn(classes, means, counts, pop_index, fname)
+        simulateandsaveoneparam(params, offset, fname, rng)
+        
         
     
 

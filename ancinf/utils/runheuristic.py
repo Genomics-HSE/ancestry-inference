@@ -112,10 +112,11 @@ def collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls,
             featuremacro[feature].append(f1s[feature])   
     return featuremacro
 
-def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=False):
-    print("====================================")
+def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=False, debug=True):
+    if debug:
+        print("====================================")
     pairs, weights, labels, labeldict, idxtranslator =\
-    ibdloader.load_pure( datafile )
+    ibdloader.load_pure( datafile, debug=debug )
     
     #pairs, weights, labels, labeldict, idxtranslator =\
     #    ibdloader.load_pure( dataset1fname, minclassize = 348, removeclasses=['Ashkenazim', 'Russians'] )
@@ -129,11 +130,15 @@ def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=F
         collectedmacros = collectmacrosforrandompartitions(grph, labels, labeldict, pairs, trns, ncls, rng, itercount, valshare, testshare)
     else: 
         collectedmacros = collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls, rng, itercount, valshare, testshare, partitions, conseq)
-    print("====================================")
-    print("+++++Results for "+ datafile+ "+++++")
+    result = {}
+    if debug:
+        print("====================================")
+        print("+++++Results for "+ datafile+ "+++++")
     for feature in collectedmacros:
-        print(f"{feature} f1 macro mean: {np.average(collectedmacros[feature]):.4f} std: {np.std(collectedmacros[feature]):.4f}" )
-
+        if debug:
+            print(f"{feature} f1 macro mean: {np.average(collectedmacros[feature]):.4f} std: {np.std(collectedmacros[feature]):.4f}" )
+        result[feature] = {"mean": np.average(collectedmacros[feature]), "std": np.std(collectedmacros[feature])}
+    return result
         
 if __name__=="__main__":
     valshare = 0.2
