@@ -112,12 +112,16 @@ def collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls,
             featuremacro[feature].append(f1s[feature])   
     return featuremacro
 
-def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=False, debug=True):
+def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=False, debug=True, filter_params = None):
     if debug:
         print("====================================")
-    pairs, weights, labels, labeldict, idxtranslator =\
-    ibdloader.load_pure( datafile, debug=debug )
     
+    if filter_params is None:
+        pairs, weights, labels, labeldict, idxtranslator = ibdloader.load_pure( datafile, debug=debug )
+    else: 
+        #filter_params["debug"]=debug
+        #print(f"{debug=}")
+        pairs, weights, labels, labeldict, idxtranslator = ibdloader.load_pure( datafile, debug=debug, **(filter_params) )
     #pairs, weights, labels, labeldict, idxtranslator =\
     #    ibdloader.load_pure( dataset1fname, minclassize = 348, removeclasses=['Ashkenazim', 'Russians'] )
     

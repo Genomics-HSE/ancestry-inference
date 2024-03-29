@@ -10,9 +10,10 @@ def stripnodename(df):
     
     
     
-def removeweakclasses(df, weaklabels):
+def removeweakclasses(df, weaklabels, debug=True):
     for c in weaklabels:
-        print("dropping", c)
+        if debug:
+            print("dropping", c)
         df.drop(df[df['label_id1']==c].index, inplace=True)
         df.drop(df[df['label_id2']==c].index, inplace=True)
         
@@ -72,7 +73,7 @@ def load_pure(datafilename, minclassize=None, removeclasses=None, debug=True):
     dfibd = pandas.read_csv(datafilename)
     stripnodename(dfibd)
     if not(removeclasses is None):
-        removeweakclasses(dfibd, removeclasses)   
+        removeweakclasses(dfibd, removeclasses, debug)   
     uniqids = getuniqnodes(dfibd, 'ibd', debug)
     if debug:
         checkuniqids(uniqids)
@@ -122,10 +123,11 @@ def load_pure(datafilename, minclassize=None, removeclasses=None, debug=True):
                 print(powerlabels[sids], powerlabelcount[sids])
 
         #remove rare from uniqids
-        removeweakclasses(dfibd, weaklabels)
+        removeweakclasses(dfibd, weaklabels, debug)
 
         uniqids = getuniqnodes(dfibd, 'ibd', debug)
-        checkuniqids(uniqids)
+        if debug:
+            checkuniqids(uniqids)
         uniqids = uniqids.sort_values(by=['node_id'])
 
         labeldf = uniqids[['label_id']].drop_duplicates()
