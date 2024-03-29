@@ -4,6 +4,12 @@ Supplementary code for the paper submitted to the ICLR2024 Workshop MLGenX
 
 As the datasets with customer data can not be made publicly available, we present the pipline that duplicates all the inference stages but is preceded by simulation stage based on significant parameters of original datasets.
 
+## Import
+1. From the repository install package for development `pip install -e .` 
+2. Import `from ancinf.utils.simulate`, `ancinf.utils.runheuristic` etc.
+
+## Command line interface
+
 ### 1. Simulate 
 1. Collect the significant parameters of original datasets (for reference only, can not be executed without original datasets): `python3 -m ancinf getparams dataset_folder --override_popsizes=500` produces `paramfile.json`
 2.  Simulate new IBD graphs with distribution of edges and edge weights with corresponding parameters: `python3 -m ancinf simulate data/paramfile.json` will produce csv files with datasets for parameters listed in `paramfile.json`
