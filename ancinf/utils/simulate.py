@@ -28,9 +28,9 @@ def collectparams(folder, override_popsizes):
     filelist = [f for f in listdir(folder) if isfile(join(folder, f))]
     csvlist = [f for f in filelist if f[-3:] == 'csv']
     result = {"experiment":{
-                "valshare": 0.2,
-                "testshare": 0.2,
-                "partition_count": 10,
+                "valshare": [0.2],
+                "testshare": [0.2],
+                "partition_count": [10],
                 "population_scale": [1.],
                 "intra_edge_probability_scale": [1.],
                 "extra_edge_probability_scale": [1.],
