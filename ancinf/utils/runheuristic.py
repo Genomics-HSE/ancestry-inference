@@ -81,7 +81,7 @@ def collectmacrosforrandompartitions(grph, labels, labeldict, pairs, trns, ncls,
     return featuremacro
     
 #or external saved partitioning
-def collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls, rng, itercount, valshare, testshare, partitions, conseq):
+def collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls, rng, partitions, conseq):
     featuremacro = {
         'IbdSumPerEdge': [], 
         'IbdSum': [], 
@@ -119,11 +119,7 @@ def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=F
     if filter_params is None:
         pairs, weights, labels, labeldict, idxtranslator = ibdloader.load_pure( datafile, debug=debug )
     else: 
-        #filter_params["debug"]=debug
-        #print(f"{debug=}")
         pairs, weights, labels, labeldict, idxtranslator = ibdloader.load_pure( datafile, debug=debug, **(filter_params) )
-    #pairs, weights, labels, labeldict, idxtranslator =\
-    #    ibdloader.load_pure( dataset1fname, minclassize = 348, removeclasses=['Ashkenazim', 'Russians'] )
     
     graphdata = bh.composegraphs(pairs, weights, labels, labeldict, idxtranslator)
     ncls = graphdata[0]['nodeclasses']
@@ -133,7 +129,7 @@ def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=F
     if partitions is None:
         collectedmacros = collectmacrosforrandompartitions(grph, labels, labeldict, pairs, trns, ncls, rng, itercount, valshare, testshare)
     else: 
-        collectedmacros = collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls, rng, itercount, valshare, testshare, partitions, conseq)
+        collectedmacros = collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls, rng, partitions, conseq)
     result = {}
     if debug:
         print("====================================")
