@@ -1,24 +1,94 @@
 ## Graph neural network application for accurate ancestry inference from Identity by Descent Graphs
 
-Supplementary code for the paper submitted to the ICLR2024 Workshop MLGenX 
+Supplementary code 
 
-As the datasets with customer data can not be made publicly available, we present the pipline that duplicates all the inference stages but is preceded by simulation stage based on significant parameters of original datasets.
+## Stage 1. Collect dataset parameters (requires original datasets)
+Input: folder with datasets, file with project description
 
-## Import
-1. From the repository install package for development `pip install -e .` 
-2. Import `from ancinf.utils.simulate`, `ancinf.utils.runheuristic` etc.
+Output: file with simulation parameters and other neccessary data for simulations
 
-## Command line interface
+Command line:
+```
+Usage: python -m ancinf getparams [OPTIONS] DATADIR WORKDIR
 
-### 1. Simulate 
-1. Collect the significant parameters of original datasets (for reference only, can not be executed without original datasets): `python3 -m ancinf getparams dataset_folder --override_popsizes=500` produces `paramfile.json`
-2.  Simulate new IBD graphs with distribution of edges and edge weights with corresponding parameters: `python3 -m ancinf simulate data/paramfile.json` will produce csv files with datasets for parameters listed in `paramfile.json`
+  Collect parameters of csv files in the DATADIR listed in project file from
+  WORKDIR
 
-### 2. Dataset preprocessing
-1. Generate dataset splits for cross-validation: `python3 -m ancinf split dataset_folder --val=20 --test=20 --count=10` will produce `datasetname_splits.json` for every `datasetname.csv` file in `dataset_folder` with 10 random splits 60:20:20
+Options:
+  --infile TEXT   Project file, defaults to project.ancinf
+  --outfile TEXT  Output file with simulation parameters, defaults to project
+                  file with '.params' extension
+```
 
-### 3. Classification 
+Python import: 
+```
+from ancinf.utils.simulate import collectparams
+params = collectparams(datadir, workdir, "project.ancinf")
+```
+
+
+## Stage 1'. Preprocess original dataset (requires original datasets)
+Input: folder with datasets, file with project description
+
+Output: filtered datasets, train-validate-test splits, file with a list of experiments
+
+Command line:
+```
+Usage: python -m ancinf preprocess [OPTIONS] DATADIR WORKDIR
+
+  Filter datsets from DATADIR, generate train-val-test splits and experiment
+  list file in WORKDIR
+
+Options:
+  --infile TEXT   Project file, defaults to project.ancinf
+  --outfile TEXT  Output file with experiment list, defaults to project file
+                  with '.explist' extension
+  --seed INTEGER  Random seed.
+```
+
+Python import: 
+```
+from ancinf.utils.simulate import preprocess
+preprocess(datadir, workdir, "nosim.ancinf", "nosim.explist", rng)
+```
+
+
+## Stage 2. Simulate 
+Input: file with simulation parameters
+
+Output: simulated datasets, train-validate-test splits, file with a list of experiments
+
+Command line:
+```
+Usage: python -m ancinf simulate [OPTIONS] WORKDIR
+
+  Generate ibd graphs, corresponding slpits and experiment list file for
+  parameters in INFILE
+
+Options:
+  --infile TEXT   File with simulation parameters, defaults to project.params
+  --outfile TEXT  Output file with experiment list, defaults to project file
+                  with '.explist' extension
+  --seed INTEGER  Random seed.
+
+```
+
+Python import: 
+```
+from ancinf.utils.simulate import simulateandsave
+simulateandsave(workdir, "smallproject.params", "smallproject.explist", rng)
+```
+
+
+## Cross-validation stages
+
+## Stage 3 
 1. Compute metrics for basic heuristics: `python3 -m ancinf heuristic dataset.csv dataset_splits.json`
-2. Compute metrics for MLP network: `python3 -m ancinf mlp dataset.csv dataset_splits.json`
-3. (optional, resulting model weigths can be found in Results folder) Train selected graph neural networks.
-4. Compute metrics for selected graph neural networks: `python3 -m ancinf gnn dataset.csv dataset_splits.json`
+
+## Stage 4 
+2. Train MLP network and compute its metrics: `python3 -m ancinf mlp dataset.csv dataset_splits.json`
+
+## Stage 5 
+3. Train selected graph neural networks and compute their metrics: `python3 -m ancinf gnn dataset.csv dataset_splits.json`
+
+## Inference stage

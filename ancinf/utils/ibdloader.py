@@ -44,7 +44,7 @@ def checkuniqids(uniqids):
     else:
         print("WARNING: ids are not consequtive, must be translated!")
 
-def load_pure(datafilename, minclassize=None, removeclasses=None, onlyclasses=None, debug=True):
+def load_pure(datafilename, minclassize=None, removeclasses=None, only=None, debug=True):
     '''Verify and load files from dataset1 pure format
         into numpy arrays
     

@@ -10,7 +10,7 @@ from .genlink import simulate_graph_fn, generate_matrices_fn
 from .baseheuristic import getprobandmeanmatrices, composegraphs, checkpartition, combinationgenerator
 from .baseheuristic import getrandompermutation, dividetrainvaltest
 from .runheuristic import translateconseqtodf
-from .ibdloader import load_pure
+from .ibdloader import load_pure, translate_indices
 
 def labeldict_to_labellist(labeldict):
     count = len(labeldict)
@@ -20,39 +20,42 @@ def labeldict_to_labellist(labeldict):
         result[idx] = lbl
     return result
 
-def collectparams(folder, override_popsizes):
+def collectparams(datadir, workdir, infile):
     '''
-    get every csv in the folder and compute its parameters
+    get parameters for every dataset in metafile
     '''
     
-    filelist = [f for f in listdir(folder) if isfile(join(folder, f))]
-    csvlist = [f for f in filelist if f[-3:] == 'csv']
-    result = {"experiment":{
-                "valshare": [0.2],
-                "testshare": [0.2],
-                "partition_count": [10],
-                "population_scale": [1.],
-                "intra_edge_probability_scale": [1.],
-                "extra_edge_probability_scale": [1.],
-                "intra_weight_scale": [1.],
-                "extra_weight_scale": [1.],
-                "all_edge_probability_scale": [1.],
-                "all_weight_scale": [1.]
-               },
-              "simulator":{
-                  "type": "exponential",
-                  "offset":8.0    
-               },
-              "datasets":{}}
+    #filelist = [f for f in listdir(folder) if isfile(join(folder, f))]
+    #csvlist = [f for f in filelist if f[-3:] == 'csv']
+    #result = {"experiment":{
+    #            "valshare": [0.2],
+    #            "testshare": [0.2],
+    #            "partition_count": [10],
+    #            "population_scale": [1.],
+    #            "intra_edge_probability_scale": [1.],
+    #            "extra_edge_probability_scale": [1.],
+    #            "intra_weight_scale": [1.],
+    #            "extra_weight_scale": [1.],
+    #            "all_edge_probability_scale": [1.],
+    #            "all_weight_scale": [1.]
+    #           },
+    #          "simulator":{
+    #              "type": "exponential",
+    #              "offset":8.0    
+    #           },
+    #          "datasets":{}}
     
-    with open(join(folder, "meta.json"),"r") as f:
+    with open(join(workdir, infile),"r") as f:
         meta = json.load(f)
     
-    for fname in csvlist:        
-        print("processing file", fname)
-        fnamepath = join(folder, fname)
-        pairs, weights, labels, labeldict, idxtranslator = load_pure( fnamepath, **meta[fname] )
-        print("load ok!")
+    paramdict = {"experiments": meta["experiments"], "simulator": meta["simulator"], "training": meta["training"], "datasets": {}}
+    datasets = meta["datasets"]
+    
+    for datasetname in datasets:        
+        print("processing dataset", datasetname)
+        fnamepath = join(datadir, datasetname+'.csv')        
+        pairs, weights, labels, labeldict, idxtranslator = load_pure( fnamepath, debug=False, **datasets[datasetname]["filters"] )
+        #print("load ok!")
         graphdata = composegraphs(pairs, weights, labels, labeldict, idxtranslator)
         ncls = graphdata[0]['nodeclasses']
         grph = graphdata[0]['graph']
@@ -75,25 +78,27 @@ def collectparams(folder, override_popsizes):
         for elem in means:
             meanslist.append(list(elem))
         
-        result["datasets"][fname] = {
+        paramdict["datasets"][datasetname] = {
             "pop_names": labellist,
             "pop_sizes": pop_sizes,
             "edge_probability": probslist,
             "mean_weight":meanslist
         }
         
-    print(result)    
-    return result
+    #print(paramdict)    
+    return paramdict
 
     
-def collectandsaveparams(folder, outfile, override_popsizes):
-    print(f"Collecting parameters for datasets from {folder}")
-    if not(override_popsizes is None):
-        print(f"Will save population sizes = {override_popsizes} instead of original")
-    collected = collectparams(folder, override_popsizes)    
-    with open(outfile,"w") as f:
-        json.dump(collected,f, indent=4, sort_keys=True)
+def collectandsaveparams(datadir, workdir, infile, outfile):
+    print(f"Collecting parameters for datasets from {datadir}")
+    collected = collectparams(datadir, workdir, infile)    
+    outpathfile = os.path.join(workdir, outfile)
+    with open(outpathfile,"w", encoding="utf-8") as f:
+        json.dump(collected, f, indent=4, sort_keys=True)
 
+        
+
+        
 
 def simulateandsaveonedataset(datasetparams, offset, fname, rng):        
     population_sizes = datasetparams["pop_sizes"]        
@@ -176,51 +181,120 @@ def savepartitions( datasetfname, valshare, testshare, partcount,  partfilename,
         json.dump({"partitions":partlist}, f, indent=4, sort_keys=True)
     
     
-def simulateandsave(paramfile, outfolder, seed):
-    rng = np.random.default_rng(seed)
-    print(f"Running simulations for parameters from {paramfile}")
-    with open(paramfile,'r') as f:
+
+def simulateandsave(workdir, infile, outfile, rng):
+    position = infile.find('.params')
+    if position>0:
+        projname = infile[:position]
+    else:
+        projname = infile    
+    
+    infilepath = os.path.join(workdir, infile)
+    
+    print(f"Running simulations for parameters from {infile}")
+    with open(infilepath, 'r') as f:
         dct = json.load(f)  
-    experiments = dct["experiment"]
+    experiments = dct["experiments"]
     datasets = dct["datasets"]
     simparams = dct["simulator"]
     offset = simparams["offset"]
+    trainparams = dct["training"]
     
-    expfiledict = {}
-    if not os.path.exists(outfolder):
-        os.makedirs(outfolder)
+    expfiledict = {}   
     #iterate through datasets
     for datasetname in datasets:
         experimentlist = []
-        #now iterate through experiments
-        expnum = 0 
-        
+        #now iterate through experiments               
         expgen = combinationgenerator(experiments)
         datasetparams = datasets[datasetname]
             
-        for experiment in expgen:
-            datafilename = os.path.join(outfolder, 'sim'+datasetname+str(expnum)+'.csv' )
-            partfilename = os.path.join(outfolder, 'sim'+datasetname+str(expnum)+'.part' )
+        for expnum, experiment in enumerate(expgen):
+            datafilename = os.path.join(workdir, projname+'_'+datasetname+'_exp'+str(expnum)+'.csv' )
+            partfilename = os.path.join(workdir, projname+'_'+datasetname+'_exp'+str(expnum)+'.split' )
             
             updateddatasetparams = updateparams(datasetparams, experiment)
             simulateandsaveonedataset(updateddatasetparams, offset, datafilename, rng)
             
-            savepartitions(datafilename, experiment["valshare"], experiment["testshare"], experiment["partition_count"], partfilename, rng)
+            savepartitions(datafilename, trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], partfilename, rng)
             
             expdict = { "id":expnum,
                        "experiment":experiment,
                        "datasetparams":datasetparams,
                        "datafile":datafilename,
+                       "training": trainparams,
                        "partitionfile":partfilename
             }
-            experimentlist.append(expdict)
-            expnum += 1
+            experimentlist.append(expdict)            
         expfiledict[datasetname] = experimentlist 
         
-    experimentlistfile = os.path.join(outfolder, 'experimentlist.json' )
+    experimentlistfile = os.path.join(workdir, outfile )
     #create file with all the experiments descritption
     with open(experimentlistfile,"w") as f:
         json.dump(expfiledict, f, indent=4, sort_keys=True)
+
+def filterandsaveonedataset(indatafilename, outdatafilename, filters):
+    pairs, weights, labels, labeldict, idxtranslator = load_pure( indatafilename, debug=False, **(filters))
+    conseq_pairs = translate_indices(pairs, idxtranslator)
+    labellist = labeldict_to_labellist(labeldict)
+    
+    with open(outdatafilename, 'w', encoding="utf-8") as f:
+        f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+        for idx, pair in enumerate(pairs):
+            i = conseq_pairs[idx][0]
+            j = conseq_pairs[idx][1]
+            label_i = labellist[labels[i]]
+            label_j = labellist[labels[j]]
+            name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
+            name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
+            f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
+            
+
+    
+        
+def preprocess(datadir, workdir, infile, outfile, rng):
+    position = infile.find('.ancinf')
+    if position>0:
+        projname = infile[:position]
+    else:
+        projname = infile    
+        
+    infilepath = os.path.join(workdir, infile)
+    
+    print(f"Preprocessing {infile}")
+    with open(infilepath, 'r') as f:
+        dct = json.load(f)          
+    datasets = dct["datasets"]
+    trainparams = dct["training"]
+    
+    expfiledict = {}   
+    #iterate through datasets
+    for datasetname in datasets:
+        print("processing dataset", datasetname)
+        experimentlist = []        
+        datasetparams = datasets[datasetname]
+                
+        indatafilename = os.path.join(datadir, datasetname+'.csv' )
+        outdatafilename = os.path.join(workdir, projname+'_'+datasetname+'.csv' )
+        partfilename = os.path.join(workdir, projname+'_'+datasetname+'.split' )
+
+        filterandsaveonedataset(indatafilename, outdatafilename, datasetparams["filters"])
+
+        savepartitions(outdatafilename, trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], partfilename, rng)
+
+        expdict = {
+                   "datafile":outdatafilename,
+                   "training": trainparams,
+                   "partitionfile":partfilename
+        }
+        experimentlist.append(expdict)            
+        expfiledict[datasetname] = experimentlist 
+        
+    experimentlistfile = os.path.join(workdir, outfile )
+    #create file with all the experiments descritption
+    with open(experimentlistfile,"w", encoding="utf-8") as f:
+        json.dump(expfiledict, f, indent=4, sort_keys=True)
+            
+
         
 if __name__=="__main__":
     print("just a test")

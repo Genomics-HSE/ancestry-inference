@@ -16,34 +16,74 @@ def cli():
     pass
 
 
+#STAGE1 GETPARAMS
 @cli.command()
-@click.argument("folder")
-@click.option("--override_popsizes", default=None, help="Output file.")
-@click.option("--out", default="paramfile.json", help="Output file.")
-def getparams(folder, out, override_popsizes):
-    """Collect parameters of all csv files in the FOLDER"""    
-    sim.collectandsaveparams(folder, out, override_popsizes)
+@click.argument("datadir")
+@click.argument("workdir")
+@click.option("--infile", default="project.ancinf", help="Project file, defaults to project.ancinf")
+@click.option("--outfile", default=None, help="Output file with simulation parameters, defaults to project file with '.params' extension")
+def getparams(datadir, workdir, infile, outfile):
+    """Collect parameters of csv files in the DATADIR listed in project file from WORKDIR"""    
+    if outfile is None:
+        #try to remove .ancinf from infile
+        position = infile.find('.ancinf')
+        if position>0:
+            outfile = infile[:position]+'.params'
+        else:
+            outfile = infile+'.params'
+    sim.collectandsaveparams(datadir, workdir, infile, outfile)
+    print("Finished!")
 
     
+#STAGE1' PREPROCESS    
 @cli.command()
-@click.argument("paramfile")
-@click.option("--folder", default=".", help="Output folder.")
+@click.argument("datadir")
+@click.argument("workdir")
+@click.option("--infile", default="project.ancinf", help="Project file, defaults to project.ancinf")
+@click.option("--outfile", default=None, help="Output file with experiment list, defaults to project file with '.explist' extension")
 @click.option("--seed", default=2023, help="Random seed.")
-def simulate(paramfile, folder, seed):
-    """Generate ibd graphs for parameters in PARAMFILE"""    
-    sim.simulateandsave(paramfile, folder, seed)
+def preprocess(datadir, workdir, infile, outfile, seed):
+    """Filter datsets from DATADIR, generate train-val-test splits and experiment list file in WORKDIR"""    
+    if outfile is None:
+        #try to remove .ancinf from infile
+        position = infile.find('.ancinf')
+        if position>0:
+            outfile = infile[:position]+'.explist'
+        else:
+            outfile = infile+'.explist'
+    rng = np.random.default_rng(seed)
+    sim.preprocess(datadir, workdir, infile, outfile, rng)
+    print("Finished!")
 
+
+#STAGE 2 SIMULATE
+@cli.command()
+@click.argument("workdir")
+@click.option("--infile", default="project.params", help="File with simulation parameters, defaults to project.params")
+@click.option("--outfile", default=None, help="Output file with experiment list, defaults to project file with '.explist' extension")
+@click.option("--seed", default=2023, help="Random seed.")
+def simulate(workdir, infile, outfile, seed):
+    """Generate ibd graphs, corresponding slpits and experiment list file for parameters in INFILE"""    
+    if outfile is None:
+        #try to remove .ancinf from infile
+        position = infile.find('.params')
+        if position>0:
+            outfile = infile[:position]+'.explist'
+        else:
+            outfile = infile+'.explist'
+            
+    rng = np.random.default_rng(seed)
+    sim.simulateandsave(workdir, infile, outfile, rng)
+    print("Finished!")
+    
+    
+#STAGE3 HEURISTICS
 @cli.command()
 @click.argument("filename")
-@click.option("--seed", default=2023, help="Random seed.")
-def heuristics(filename, seed):
-    """Run heuristics for"""    
-    valshare = 0.2
-    testshare = 0.2
-    itercount = 10    
-    rng = np.random.default_rng(seed)
-    runheuristic.run(rng, filename, valshare, testshare, itercount)
-    
+def heuristics(filename):
+    """Run heuristics for"""               
+    runheuristic.run(filename)
+    print("Finished!")
     
 
 def main():
