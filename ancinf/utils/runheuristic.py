@@ -4,6 +4,8 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import time
+import os
+import json
 
 from . import ibdloader
 from . import baseheuristic as bh
@@ -112,7 +114,7 @@ def collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls,
             featuremacro[feature].append(f1s[feature])   
     return featuremacro
 
-def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=False, debug=True, filter_params = None):
+def run(rng, datafile, valshare=None, testshare=None, itercount=None, partitions=None, conseq=False, debug=True, filter_params = None):
     if debug:
         print("====================================")
     
@@ -140,6 +142,34 @@ def run(rng, datafile, valshare, testshare, itercount, partitions=None, conseq=F
         result[feature] = {"mean": np.average(collectedmacros[feature]), "std": np.std(collectedmacros[feature])}
     return result
         
+    
+def runheuristics(workdir, infile, rng):
+    with open(os.path.join(workdir, infile),"r") as f:
+        explist = json.load(f)
+    
+    result = {}
+    for dataset in explist:
+        print("Running experiments for", dataset)
+        datasetexplist = explist[dataset]
+        datasetresults = []
+        for exp in datasetexplist:
+            
+            datafile = os.path.join(workdir, exp["datafile"])
+            
+            with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
+                partitions = json.load(f)
+            
+            runresult = run(rng, datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None)
+            datasetresults.append(runresult)
+        result[dataset] = datasetresults
+    return result
+    
+def runandsaveheuristics(workdir, infile, outfile, rng): 
+    result = runheuristics(workdir, infile, rng)
+    with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
+        json.dump(result, f, indent=4, sort_keys=True)
+   
+    
 if __name__=="__main__":
     valshare = 0.2
     testshare = 0.2

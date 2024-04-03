@@ -2,6 +2,8 @@
 
 Supplementary code 
 
+# I. Preprocessing and simulation
+
 ## Stage 1. Collect dataset parameters (requires original datasets)
 Input: folder with datasets, file with project description
 
@@ -80,10 +82,32 @@ simulateandsave(workdir, "smallproject.params", "smallproject.explist", rng)
 ```
 
 
-## Cross-validation stages
+# II. Cross-validation 
 
-## Stage 3 
-1. Compute metrics for basic heuristics: `python3 -m ancinf heuristic dataset.csv dataset_splits.json`
+## Stage 3. Compute metrics for basic heuristics: 
+Input: Original or simulated datasets, train-validate-test splits, file with a list of experiments
+
+Output: heuristic classification metrics
+
+Command line:
+```
+Usage: python -m ancinf heuristics [OPTIONS] WORKDIR
+
+  Run heuristics
+
+Options:
+  --infile TEXT   File with experiment list, defaults to project.explist
+  --outfile TEXT  File with classification metrics, defaults to project 
+                  file with '.result' extension
+  --seed INTEGER  Random seed
+```
+
+Python import: 
+```
+from ancinf.utils.runheuristic import runheuristics
+runheuristics(workdir, 'project.explist', rng)
+```
+
 
 ## Stage 4 
 2. Train MLP network and compute its metrics: `python3 -m ancinf mlp dataset.csv dataset_splits.json`
@@ -91,4 +115,4 @@ simulateandsave(workdir, "smallproject.params", "smallproject.explist", rng)
 ## Stage 5 
 3. Train selected graph neural networks and compute their metrics: `python3 -m ancinf gnn dataset.csv dataset_splits.json`
 
-## Inference stage
+# III. Inference 
