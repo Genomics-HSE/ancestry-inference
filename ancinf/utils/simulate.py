@@ -20,70 +20,64 @@ def labeldict_to_labellist(labeldict):
         result[idx] = lbl
     return result
 
+def collectdatasetparams(fnamepath, filters={}):
+    pairs, weights, labels, labeldict, idxtranslator = load_pure( fnamepath, debug=False, **filters )
+    #print("load ok!")
+    graphdata = composegraphs(pairs, weights, labels, labeldict, idxtranslator)
+    ncls = graphdata[0]['nodeclasses']
+    grph = graphdata[0]['graph']
+    trns = graphdata[0]['translation']
+
+    checkpartition(grph, ncls, None, None, details=True, trns=trns)
+
+    means, probs  = getprobandmeanmatrices(grph, ncls, labeldict)
+    #print("means:", means)
+    #print("probs:", probs)
+
+    labellist = labeldict_to_labellist(labeldict)
+    #print(labellist)
+    #print(labels)
+    pop_sizes = [ncls[lbl].shape[0] for lbl in labellist]
+    probslist = []
+    for elem in probs:
+        probslist.append(list(elem))
+    meanslist = []
+    for elem in means:
+        meanslist.append(list(elem))
+
+    result = {
+        "pop_names": labellist,
+        "pop_sizes": pop_sizes,
+        "edge_probability": probslist,
+        "mean_weight":meanslist
+    }
+    return result
+    
+
+
 def collectparams(datadir, workdir, infile):
     '''
     get parameters for every dataset in metafile
     '''
     
-    #filelist = [f for f in listdir(folder) if isfile(join(folder, f))]
-    #csvlist = [f for f in filelist if f[-3:] == 'csv']
-    #result = {"experiment":{
-    #            "valshare": [0.2],
-    #            "testshare": [0.2],
-    #            "partition_count": [10],
-    #            "population_scale": [1.],
-    #            "intra_edge_probability_scale": [1.],
-    #            "extra_edge_probability_scale": [1.],
-    #            "intra_weight_scale": [1.],
-    #            "extra_weight_scale": [1.],
-    #            "all_edge_probability_scale": [1.],
-    #            "all_weight_scale": [1.]
-    #           },
-    #          "simulator":{
-    #              "type": "exponential",
-    #              "offset":8.0    
-    #           },
-    #          "datasets":{}}
-    
     with open(join(workdir, infile),"r") as f:
         meta = json.load(f)
     
-    paramdict = {"experiments": meta["experiments"], "simulator": meta["simulator"], "training": meta["training"], "datasets": {}}
+    paramdict = {"datasets": {}}
+    for k in ["experiments", "simulator", "training"]:
+        if k in meta:
+            paramdict[k] = meta[k]
+
     datasets = meta["datasets"]
     
     for datasetname in datasets:        
         print("processing dataset", datasetname)
         fnamepath = join(datadir, datasetname+'.csv')        
-        pairs, weights, labels, labeldict, idxtranslator = load_pure( fnamepath, debug=False, **datasets[datasetname]["filters"] )
-        #print("load ok!")
-        graphdata = composegraphs(pairs, weights, labels, labeldict, idxtranslator)
-        ncls = graphdata[0]['nodeclasses']
-        grph = graphdata[0]['graph']
-        trns = graphdata[0]['translation']
-
-        checkpartition(grph, ncls, None, None, details=True, trns=trns)
-
-        means, probs  = getprobandmeanmatrices(grph, ncls, labeldict)
-        #print("means:", means)
-        #print("probs:", probs)
+        filters = datasets[datasetname]["filters"]
+        dsparams = collectdatasetparams(fnamepath, filters)
         
-        labellist = labeldict_to_labellist(labeldict)
-        #print(labellist)
-        #print(labels)
-        pop_sizes = [ncls[lbl].shape[0] for lbl in labellist]
-        probslist = []
-        for elem in probs:
-            probslist.append(list(elem))
-        meanslist = []
-        for elem in means:
-            meanslist.append(list(elem))
         
-        paramdict["datasets"][datasetname] = {
-            "pop_names": labellist,
-            "pop_sizes": pop_sizes,
-            "edge_probability": probslist,
-            "mean_weight":meanslist
-        }
+        paramdict["datasets"][datasetname] = dsparams
         
     #print(paramdict)    
     return paramdict
@@ -295,6 +289,42 @@ def preprocess(datadir, workdir, infile, outfile, rng):
         json.dump(expfiledict, f, indent=4, sort_keys=True)
             
 
+def rungnn(workdir, infile, rng):
+    with open(os.path.join(workdir, infile),"r") as f:
+        explist = json.load(f)
+    
+    result = {}
+    for dataset in explist:
+        print("Running experiments for", dataset)
+        datasetexplist = explist[dataset]
+        datasetresults = []
+        for exp in datasetexplist:
+            
+            datafile = os.path.join(workdir, exp["datafile"])
+            
+            with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
+                partitions = json.load(f)
+            for partition in partitions["partitions"]:
+
+                train_arr = []
+                val_arr = []
+                test_arr = []
+
+                splitdict = { "train":train_arr, "val":val_arr, "test":test_arr }
+                df = pandas.read_csv(datafile)
+
+            runresult = run_gnn_external(df, splitdict)
+            datasetresults.append(runresult)
+        result[dataset] = datasetresults
+    return result            
+            
+            
+def runandsavegnn(workdir, infile, outfile, rng):
+    result = rungnn(workdir, infile, rng)
+    with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
+        json.dump(result, f, indent=4, sort_keys=True)            
+            
+            
         
 if __name__=="__main__":
     print("just a test")

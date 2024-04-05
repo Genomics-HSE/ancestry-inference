@@ -112,7 +112,32 @@ runheuristics(workdir, 'project.explist', rng)
 ## Stage 4 
 2. Train MLP network and compute its metrics: `python3 -m ancinf mlp dataset.csv dataset_splits.json`
 
-## Stage 5 
-3. Train selected graph neural networks and compute their metrics: `python3 -m ancinf gnn dataset.csv dataset_splits.json`
+## Stage 5. Train selected graph neural networks and compute their metrics: 
+
+Input: Original or simulated datasets, train-validate-test splits, file with a list of experiments
+
+Output: GNN classification metrics
+
+Command line:
+```
+Usage: python -m ancinf gnn [OPTIONS] WORKDIR
+
+  Run heuristics
+
+Options:
+  --infile TEXT   File with experiment list, defaults to project.explist
+  --outfile TEXT  File with classification metrics, defaults to project 
+                  file with '.result' extension
+  --seed INTEGER  Random seed
+```
+
+Python import: 
+```
+from ancinf.utils.runheuristic import rungnn
+rungnn(workdir, 'project.explist', rng)
+```
+
+
+
 
 # III. Inference 
