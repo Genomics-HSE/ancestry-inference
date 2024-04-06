@@ -96,6 +96,24 @@ def heuristics(workdir, infile, outfile, seed):
     runheuristic.runandsaveheuristics(workdir, infile, outfile, rng)
     print("Finished!")
     
+    
+@cli.command()
+@click.argument("workdir")
+@click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
+@click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
+@click.option("--seed", default=2023, help="Random seed")
+def gnn(workdir, infile, outfile, seed):
+    """Run gnns"""     
+    rng = np.random.default_rng(seed)  
+    if outfile is None:
+        #try to remove .ancinf from infile
+        position = infile.find('.explist')
+        if position>0:
+            outfile = infile[:position]+'.result'
+        else:
+            outfile = infile+'.result'
+    sim.runandsavegnn(workdir, infile, outfile, rng)
+    print("Finished!")
 
 def main():
     cli()
