@@ -463,6 +463,77 @@ class DataProcessor:
 
 
 
+class NullSimulator:
+    def __init__(self, num_classes, edge_probs, mean_weight):
+        self.num_classes = num_classes
+        self.classes = [f'class_{i}' for i in range(self.num_classes)]
+        self.edge_probs = edge_probs
+        self.mean_weight = mean_weight
+        self.offset = 8.0
+
+
+    def symmetrize(self, m):
+        return m + m.T - np.diag(m.diagonal())
+
+    def generate_matrices(self, population_sizes):
+        p = self.edge_probs
+        teta = self.mean_weight
+        pop_index = []
+        n_pops = len(population_sizes)
+        for i in range(n_pops):
+            pop_index += [i] * population_sizes[i]
+
+        pop_index = np.array(pop_index)
+        print(f"{n_pops=}")
+        blocks_sums = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for i in range(n_pops)] for j in
+                       range(n_pops)]
+        blocks_counts = [[np.zeros(shape=(population_sizes[i], population_sizes[j])) for i in range(n_pops)] for j
+                         in range(n_pops)]
+
+        print(np.array(blocks_sums).shape)
+
+        for pop_i in range(n_pops):
+            for pop_j in range(pop_i + 1):
+                if p[pop_i, pop_j] == 0:
+                    continue
+                # print(f"{pop_i=} {pop_j=}")
+                pop_cross = population_sizes[pop_i] * population_sizes[pop_j]
+                bern_samples = bernoulli.rvs(p[pop_i, pop_j], size=pop_cross)
+                total_segments = np.sum(bern_samples)
+                # print(f"{total_segments=}")
+                exponential_samples = np.random.exponential(teta[pop_i, pop_j], size=total_segments) + self.offset
+                position = 0
+                exponential_totals_samples = np.zeros(pop_cross, dtype=np.float64)
+                mean_totals_samples = np.zeros(pop_cross, dtype=np.float64)
+                exponential_totals_samples[bern_samples == 1] = exponential_samples
+
+                bern_samples = np.reshape(bern_samples, newshape=(population_sizes[pop_i], population_sizes[pop_j]))
+                exponential_totals_samples = np.reshape(exponential_totals_samples,
+                                                        newshape=(population_sizes[pop_i], population_sizes[pop_j]))
+                if (pop_i == pop_j):
+                    bern_samples = np.tril(bern_samples, -1)
+                    exponential_totals_samples = np.tril(exponential_totals_samples, -1)
+                blocks_counts[pop_i][pop_j] = bern_samples
+                blocks_sums[pop_i][pop_j] = exponential_totals_samples
+        return np.nan_to_num(self.symmetrize(np.block(blocks_counts))), np.nan_to_num(
+            self.symmetrize(np.block(blocks_sums))), pop_index
+
+    def simulate_graph(self, means, counts, pop_index, path):
+        indiv = list(range(counts.shape[0]))
+        with open(path, 'w', encoding="utf-8") as f:
+            f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum\n')
+            for i in range(counts.shape[0]):
+                for j in range(i):
+                    if (means[i][j]):
+                        name_i = self.classes[pop_index[i]] if "," not in self.classes[pop_index[i]] else '\"' + self.classes[pop_index[i]] + '\"'
+                        name_j = self.classes[pop_index[j]] if "," not in self.classes[pop_index[j]] else '\"' + self.classes[pop_index[j]] + '\"'
+                        f.write(f'node_{i},node_{j},{name_i},{name_j},{counts[i][j]}\n')
+
+
+
+
+
+
 class Trainer:
     def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, weight, batch_size, log_dir, patience, num_epochs):
         self.data = data
