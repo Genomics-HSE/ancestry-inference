@@ -163,7 +163,7 @@ class DataProcessor:
         self.array_of_graphs_for_training = []
         self.array_of_graphs_for_validation = []
         self.array_of_graphs_for_testing = []
-        self.rng = np.random.default_rng(seed)
+        self.rng = np.random.default_rng(42)
         
     def get_classes(self, df):
         # return ['карачаевцы,балкарцы', 'осетины', 'кабардинцы,черкесы,адыгейцы','ингуши','кумыки','ногайцы','чеченцы','дагестанские народы']
