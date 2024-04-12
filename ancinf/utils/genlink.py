@@ -34,7 +34,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
 from torch.nn import Linear, LayerNorm, BatchNorm1d
 from torch_geometric.nn import GCNConv, GATConv, TransformerConv, NNConv, SGConv, ARMAConv, TAGConv, ChebConv, DNAConv, \
-EdgeConv, FiLMConv, FastRGCNConv, SSGConv, SAGEConv, GATv2Conv, BatchNorm, GraphNorm, MemPooling, SAGPooling
+EdgeConv, FiLMConv, FastRGCNConv, SSGConv, SAGEConv, GATv2Conv, BatchNorm, GraphNorm, MemPooling, SAGPooling, GINConv
 
 
 def symmetrize(m):
@@ -1113,15 +1113,15 @@ class SSGConv_3l_128h_w_a09_k1(torch.nn.Module):
         x = self.conv3(x, edge_index, edge_attr)
         return x
     
-class GINnn(torch.nn.Module):
-    def __init__(self, data):
-        super(GINnn, self).__init__()
-        self.gin = GIN(in_channels=data.num_features, hidden_channels=32, num_layers=3, out_channels=data.num_classes)
+# class GINnn(torch.nn.Module):
+#     def __init__(self, data):
+#         super(GINnn, self).__init__()
+#         self.gin = GIN(in_channels=data.num_features, hidden_channels=32, num_layers=3, out_channels=data.num_classes)
 
-    def forward(self, data):
-        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
-        output = self.gin(x, edge_index)
-        return output
+#     def forward(self, data):
+#         x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+#         output = self.gin(x, edge_index)
+#         return output
     
 class SAGEConv_3l_128h(torch.nn.Module):
     def __init__(self, data):
@@ -1151,65 +1151,219 @@ class ChebConv_3l_128h_w_k3(torch.nn.Module):
         x = self.conv3(x, edge_index, edge_attr)
         return x
     
+
+
 class AttnGCN(torch.nn.Module):
-    def __init__(self, data):
-        super(AttnGCN, self).__init__()
-#         torch.manual_seed(1234)
+    def __init__(self, dataset):
+        super().__init__()
+        n_features = 128
+        n_heads = 2
+        self.dp = 0.2
 
-        self.emb1 = GCNConv(in_channels=5,
-                          out_channels=5,
-                          add_self_loops=False,
-                          normalize=False,
-                          aggr="mean"
-                          )
+        n_class = num_classes[dataset]
 
-        # self.emb2 = GCNConv(in_channels=5,
-        #                   out_channels=5,
-        #                   add_self_loops=False,
-        #                   normalize=False,
-        #                   aggr="mean"
-        #                   )
-        
-        self.att_conv1 = GATConv(in_channels=5,
-                             out_channels=64,
-                             heads=2, 
-                             edge_dim=1, 
-                             aggr="add")
-        self.att_conv2 = GATConv(in_channels=128,
-                             out_channels=64,
-                             heads=2, 
-                             edge_dim=1)
-        # self.conv3 = GATConv(in_channels=128,
-        #                      out_channels=128,
-        #                      heads=1, 
-        #                      edge_dim=1)
-        self.fc1 = Linear(128, 20)
-        self.fc2 = Linear(20, 20)
-        self.fc3 = Linear(20, 5)
+        self.conv1 = GATv2Conv(in_channels=n_class,
+                               out_channels=n_features,
+                               heads=n_heads,
+                               edge_dim=1,
+                               aggr="add",
+                               concat=True,
+                               share_weights=False,
+                               add_self_loops=False)
+        self.norm1 = BatchNorm1d(n_features * n_heads)
+
+        self.conv2 = GATv2Conv(in_channels=n_features * n_heads,
+                               out_channels=n_features,
+                               heads=n_heads,
+                               edge_dim=1,
+                               aggr="add",
+                               concat=True,
+                               share_weights=False,
+                               add_self_loops=True)
+
+        self.norm2 = BatchNorm1d(n_features * n_heads)
+        self.fc = Linear(n_features * n_heads, n_class)
+
+    #         self.conv3 = GATv2Conv(in_channels=n_features,
+    #                                out_channels=5,
+    #                                heads=1,
+    #                                edge_dim=1,
+    #                                aggr="add",
+    #                                concat=False,
+    #                                share_weights=False,
+    #                                add_self_loops=True)
+    #         self.norm3 = BatchNorm1d(n_features)
+
+    def forward(self, x_input, edge_index, edge_weight):
+        h = self.conv1(x_input, edge_index, edge_weight)
+        h = self.norm1(h)
+        h = F.leaky_relu(h)
+        h = F.dropout(h, p=self.dp, training=True)
+
+        h = self.conv2(h, edge_index, edge_weight)
+        h = self.norm2(h)
+        h = F.leaky_relu(h)
+        h = F.dropout(h, p=self.dp, training=True)
+
+        h = self.fc(h)
+        return h
 
 
-    def forward(self, data):
-        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
-        h = self.emb1(h, edge_index, edge_weight)#.relu()
-        #h = self.emb2(h, edge_index, edge_weight).relu()
-        h = self.att_conv1(h, edge_index, edge_weight).relu()
-        #h = F.dropout(h, p=0.3, training=self.training)
-        
-        #h = self.att_conv2(h, edge_index, edge_weight).relu()
-        #h = F.dropout(h, p=0.3, training=self.training)
-        
-        #h = self.conv3(h, edge_index, edge_weight).relu()
-        #h = F.dropout(h, p=0.5, training=self.training)
-        
-        h = self.fc1(h).relu()
-        #h = F.dropout(h, p=0.1, training=self.training)
-        
-        h = self.fc2(h).relu()
-        #h = F.dropout(h, p=0.1, training=self.training)
-        
-        h = self.fc3(h)
-    
+class SimpleNN(torch.nn.Module):
+    def __init__(self, dataset):
+        super().__init__()
+        dp = 0.2
+        hidden_dim = 128
+        n_class = num_classes[dataset]
+        self.model = Sequential(
+            Linear(3 * n_class, hidden_dim),
+            BatchNorm1d(hidden_dim),
+            LeakyReLU(),
+            Dropout(p=dp),
+            Linear(hidden_dim, hidden_dim),
+            BatchNorm1d(hidden_dim),
+            LeakyReLU(),
+            Dropout(p=dp),
+            Linear(hidden_dim, hidden_dim),
+            BatchNorm1d(hidden_dim),
+            LeakyReLU(),
+            Dropout(p=dp),
+            Linear(hidden_dim, hidden_dim),
+            BatchNorm1d(hidden_dim),
+            LeakyReLU(),
+            Dropout(p=dp),
+            Linear(hidden_dim, n_class),
+        )
+
+    def forward(self, h, a, b):
+        h = self.model(h)
+        return h
+
+
+class GCN(torch.nn.Module):
+    def __init__(self, dataset):
+        super(GCN, self).__init__()
+        hidden_dim = 128
+        n_class = num_classes[dataset]
+        # First GCN layer with normalization
+        self.conv1 = GCNConv(n_class, hidden_dim, normalize=True)
+
+        # Second GCN layer with normalization
+        self.conv2 = GCNConv(hidden_dim, hidden_dim, normalize=True)
+
+        # Output layer
+        self.fc = torch.nn.Linear(hidden_dim, n_class)
+
+    def forward(self, x, edge_index, edge_weight):
+        # Apply the first GCN layer
+        x = F.relu(self.conv1(x, edge_index, edge_weight))
+
+        # Apply the second GCN layer
+        x = F.relu(self.conv2(x, edge_index, edge_weight))
+
+        # Fully connected layer for classification
+        x = self.fc(x)
+
+        return x
+
+
+class GCN_simple(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.norm1 = BatchNorm1d(5)
+
+        self.attn_conv = GATv2Conv(in_channels=5,
+                                   out_channels=128,
+                                   heads=2,
+                                   edge_dim=1,
+                                   aggr="mean",
+                                   concat=False,
+                                   share_weights=False,
+                                   add_self_loops=False
+                                   )
+        self.attn_norm = BatchNorm1d(128)
+
+        self.fc1 = Linear(128, 128)
+        self.norm_fc1 = BatchNorm1d(128)
+        self.fc2 = Linear(128, 5)
+        self.dp = 0.2
+
+    def forward(self, h, edge_index, edge_weight):
+        h = self.norm1(h)
+
+        h = self.attn_conv(h, edge_index, edge_weight)
+
+        h = self.fc1(h)
+        h = self.norm_fc1(h)
+        h = F.leaky_relu(h)
+        h = F.dropout(h, p=self.dp, training=self.training)
+
+        h = self.fc2(h)
+
         return h
 
 
 
+
+
+class TAGConv_3l_512h_w_k3(torch.nn.Module):
+    def __init__(self, dataset):
+        super(TAGConv_3l_512h_w_k3, self).__init__()
+        n_class = num_classes[dataset]
+        self.conv1 = TAGConv(n_class, 128)
+        self.conv2 = TAGConv(128, 128)
+        self.conv3 = TAGConv(128, n_class)
+
+    def forward(self, x, edge_index, edge_weight):
+        x = F.elu(self.conv1(x, edge_index, edge_weight))
+        x = F.elu(self.conv2(x, edge_index, edge_weight))
+        x = self.conv3(x, edge_index, edge_weight)
+        return x
+
+
+
+
+
+class GINNet(torch.nn.Module):
+    def __init__(self, dataset):
+        super(GINNet, self).__init__()
+        n_class = num_classes[dataset]
+        hidden_dim = 128
+        # GIN Convolution Layer
+        self.conv1 = GINConv(
+            nn=torch.nn.Sequential(
+                torch.nn.Linear(n_class, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU()
+            ),
+            eps=0.0  # Add a small value to the denominator for numerical stability
+        )
+
+        self.conv2 = GINConv(
+            nn=torch.nn.Sequential(
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU()
+            ),
+            eps=0.0
+        )
+
+        # Output layer
+        self.fc = torch.nn.Linear(hidden_dim, n_class)
+
+    def forward(self, x, edge_index, edge_weight):
+        # Apply GIN Convolution layers
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.relu(self.conv2(x, edge_index))
+
+        # Fully connected layer for classification
+        x = self.fc(x)
+
+        return F.log_softmax(x, dim=1)
