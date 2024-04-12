@@ -255,9 +255,9 @@ class DataProcessor:
             self.valid_nodes = torch.load(valid_path).tolist()
             self.test_nodes = torch.load(test_path).tolist()
         if data_type == 'numpy':
-            self.train_nodes = [self.node_names_to_int_mapping[node] for node in np.load(train_path)]
-            self.valid_nodes = [self.node_names_to_int_mapping[node] for node in np.load(valid_path)]
-            self.test_nodes = [self.node_names_to_int_mapping[node] for node in np.load(test_path)]
+            self.train_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in np.load(train_path)]
+            self.valid_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in np.load(valid_path)]
+            self.test_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in np.load(test_path)]
 
         if not (type(self.train_nodes) == list and type(self.valid_nodes) == list and type(self.test_nodes) == list):
             raise Exception('Node ids must be stored in Python lists!')
@@ -535,15 +535,15 @@ class NullSimulator:
 
 
 class Trainer:
-    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, weight, batch_size, log_dir, patience, num_epochs):
+    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, weight=None):
         self.data = data
         self.model = None
-        self.device = None
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.model_cls = model_cls
         self.learning_rate = lr
         self.weight_decay = wd
         self.loss_fn = loss_fn
-        self.weight = weight
+        self.weight = torch.tensor([1. for i in range(self.data.num_classes)]).to(self.device) if weight is None else weight
         self.batch_size = batch_size
         self.log_dir = log_dir
         self.patience = patience
@@ -599,7 +599,7 @@ class Trainer:
 
     def run(self):
         if not os.path.exists(self.log_dir):
-            os.mkdir(self.log_dir)
+            os.makedirs(self.log_dir)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self.model_cls(self.data.array_of_graphs_for_training[0]).to(self.device) # just initialize the parameters of the model
         criterion = self.loss_fn(weight=self.weight)
