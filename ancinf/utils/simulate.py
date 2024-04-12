@@ -321,8 +321,10 @@ def rungnn(workdir, infile, rng):
                 run_name = "temprunfile"
 
                 runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name) 
+                print("!!!!!!!! RUN COMPLETE!!!!!", runresult)
                 expresults.append(runresult)
             
+            print("experiment results for different splits:", expresults)
             expresults = np.array(expresults)
             metric_average = np.average(expresults)
             metric_std = np.std(expresults)
