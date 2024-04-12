@@ -32,6 +32,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
+from torch.nn import Linear, LayerNorm, BatchNorm1d
 from torch_geometric.nn import GCNConv, GATConv, TransformerConv, NNConv, SGConv, ARMAConv, TAGConv, ChebConv, DNAConv, \
 EdgeConv, FiLMConv, FastRGCNConv, SSGConv, SAGEConv, GATv2Conv, BatchNorm, GraphNorm, MemPooling, SAGPooling
 
@@ -420,6 +421,62 @@ class DataProcessor:
 
                     self.array_of_graphs_for_testing.append(graph)
 
+        elif feature_type == '15_dim' and model_type == 'homogeneous':
+            if train_dataset_type == 'multiple' and test_dataset_type == 'multiple':
+                dict_node_classes = self.node_classes_to_dict()
+                df_for_training = self.df.copy()
+                drop_rows = self.drop_rows_for_training_dataset(self.df.to_numpy(), self.valid_nodes + self.test_nodes)
+                df_for_training = df_for_training.drop(drop_rows)
+
+                # make training samples
+                for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
+                    curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
+
+                    graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training)
+
+                    self.array_of_graphs_for_training.append(graph)
+
+                # make validation samples
+                rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                                                                               np.array(self.train_nodes),
+                                                                               np.array(self.valid_nodes))
+                for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples'):
+                    rows_for_adding = rows_for_adding_per_node[k]
+                    df_for_validation = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
+
+                    if df_for_validation.shape[0] == df_for_training.shape[0]:
+                        print('Isolated val node found! Restart with different seed or this node will be ignored.')
+                        continue
+
+                    specific_node = self.valid_nodes[k]
+                    current_valid_nodes = self.train_nodes + [specific_node]
+
+                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation)
+
+                    self.array_of_graphs_for_validation.append(graph)
+
+                # make testing samples
+                rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                                                                               np.array(self.train_nodes),
+                                                                               np.array(self.test_nodes))
+                for k in tqdm(range(len(self.test_nodes)), desc='Make test samples'):
+                    rows_for_adding = rows_for_adding_per_node[k]
+                    df_for_testing = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
+
+                    if df_for_testing.shape[0] == df_for_training.shape[0]:
+                        print('Isolated test node found! Restart with different seed or this node will be ignored.')
+                        continue
+
+                    specific_node = self.test_nodes[k]
+                    current_test_nodes = self.train_nodes + [specific_node]
+
+                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing)
+
+                    self.array_of_graphs_for_testing.append(graph)
+
+        else:
+            raise Exception('No such method for graph generation')
+
     def compute_simulation_params(self):
         self.edge_probs = np.zeros((len(self.classes), len(self.classes)))
         self.mean_weight = np.zeros((len(self.classes), len(self.classes)))
@@ -574,6 +631,7 @@ class Trainer:
 
         current_f1_score_macro = f1_score(y_true, y_pred, average='macro')
         if current_f1_score_macro > self.max_f1_score_macro:
+            self.patience_counter = 0
             self.max_f1_score_macro = current_f1_score_macro
             print(f'f1 macro improvement to {self.max_f1_score_macro}')
             torch.save(self.model.state_dict(), self.log_dir + '/model_best.bin')
@@ -650,7 +708,7 @@ class Trainer:
 class TAGConv_3l_128h_w_k3(torch.nn.Module):
     def __init__(self, data):
         super(TAGConv_3l_128h_w_k3, self).__init__()
-        self.conv1 = TAGConv(data.num_features, 128)
+        self.conv1 = TAGConv(int(data.num_classes), 128)
         self.conv2 = TAGConv(128, 128)
         self.conv3 = TAGConv(128, int(data.num_classes))
 
@@ -665,7 +723,7 @@ class TAGConv_3l_128h_w_k3(torch.nn.Module):
 class TAGConv_3l_512h_w_k3(torch.nn.Module):
     def __init__(self, data):
         super(TAGConv_3l_512h_w_k3, self).__init__()
-        self.conv1 = TAGConv(data.num_features, 512)
+        self.conv1 = TAGConv(int(data.num_classes), 512)
         self.conv2 = TAGConv(512, 512)
         self.conv3 = TAGConv(512, int(data.num_classes))
 
@@ -677,7 +735,481 @@ class TAGConv_3l_512h_w_k3(torch.nn.Module):
         return x
 
 
+class MLP_3l_128h(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+        self.norm = BatchNorm1d(int(data.num_classes))
+        self.fc1 = Linear(int(data.num_classes), 128)
+        self.fc2 = Linear(128, 128)
+        self.fc3 = Linear(128, int(data.num_classes))
 
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.norm(h)
+        h = self.fc1(h)
+        h = h.relu()
+        h = self.fc2(h)
+        h = h.relu()
+        h = self.fc3(h)
+        return h
+    
+class MLP_3l_512h(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+        self.norm = BatchNorm1d(int(data.num_classes))
+        self.fc1 = Linear(int(data.num_classes), 512)
+        self.fc2 = Linear(512, 512)
+        self.fc3 = Linear(512, int(data.num_classes))
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.norm(h)
+        h = self.fc1(h)
+        h = h.relu()
+        h = self.fc2(h)
+        h = h.relu()
+        h = self.fc3(h)
+        return h
+    
+class MLP_9l_128h(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+        self.norm = BatchNorm1d(int(data.num_classes))
+        self.fc1 = Linear(int(data.num_classes), 128)
+        self.fc2 = Linear(128, 128)
+        self.fc3 = Linear(128, 128)
+        self.fc4 = Linear(128, 128)
+        self.fc5 = Linear(128, 128)
+        self.fc6 = Linear(128, 128)
+        self.fc7 = Linear(128, 128)
+        self.fc8 = Linear(128, 128)
+        self.fc9 = Linear(128, int(data.num_classes))
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.norm(h)
+        h = self.fc1(h)
+        h = h.relu()
+        h = self.fc2(h)
+        h = h.relu()
+        h = self.fc3(h)
+        h = h.relu()
+        h = self.fc4(h)
+        h = h.relu()
+        h = self.fc5(h)
+        h = h.relu()
+        h = self.fc6(h)
+        h = h.relu()
+        h = self.fc7(h)
+        h = h.relu()
+        h = self.fc8(h)
+        h = h.relu()
+        h = self.fc9(h)
+        return h
+    
+class MLP_9l_512h(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+        self.norm = BatchNorm1d(int(data.num_classes))
+        self.fc1 = Linear(int(data.num_classes), 512)
+        self.fc2 = Linear(512, 512)
+        self.fc3 = Linear(512, 512)
+        self.fc4 = Linear(512, 512)
+        self.fc5 = Linear(512, 512)
+        self.fc6 = Linear(512, 512)
+        self.fc7 = Linear(512, 512)
+        self.fc8 = Linear(512, 512)
+        self.fc9 = Linear(512, int(data.num_classes))
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.norm(h)
+        h = self.fc1(h)
+        h = h.relu()
+        h = self.fc2(h)
+        h = h.relu()
+        h = self.fc3(h)
+        h = h.relu()
+        h = self.fc4(h)
+        h = h.relu()
+        h = self.fc5(h)
+        h = h.relu()
+        h = self.fc6(h)
+        h = h.relu()
+        h = self.fc7(h)
+        h = h.relu()
+        h = self.fc8(h)
+        h = h.relu()
+        h = self.fc9(h)
+        return h
+
+class TAGConv_3l_128h_w_k3_g_norm_mem_pool(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_3l_128h_w_k3_g_norm_mem_pool, self).__init__()
+        self.conv1 = TAGConv(int(data.num_classes), 128)
+        self.conv2 = TAGConv(128, 128)
+        self.conv3 = TAGConv(128, int(data.num_classes))
+        self.n1 = GraphNorm(128)
+        self.n2 = GraphNorm(128)
+        self.m1 = MemPooling(128, 128, 3, 3)
+        self.m2 = MemPooling(128, 128, 3, 3)
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = self.n1(x)
+        x = self.m1(x)
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.n2(x)
+        x = self.m2(x)
+        x = self.conv3(x, edge_index, edge_attr)
+        return x
+    
+    
+class TAGConv_3l_128h_wnw_k3(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_3l_128h_wnw_k3, self).__init__()
+        self.conv1w = TAGConv(data.num_features, 128)
+        self.conv2w = TAGConv(128, 128)
+        self.conv3w = TAGConv(128, 128)
+        
+        self.conv1nw = TAGConv(data.num_features, 128)
+        self.conv2nw = TAGConv(128, 128)
+        self.conv3nw = TAGConv(128, 128)
+        
+        self.classifier = Linear(256, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        xw = F.elu(self.conv1w(x, edge_index, edge_attr))
+        xw = F.elu(self.conv2w(xw, edge_index, edge_attr))
+        xw = F.elu(self.conv3w(xw, edge_index, edge_attr))
+        
+        xnw = F.elu(self.conv1nw(x, edge_index))
+        xnw = F.elu(self.conv2nw(xnw, edge_index))
+        xnw = F.elu(self.conv3nw(xnw, edge_index))
+        
+        x_all = torch.cat((xw, xnw), 1)
+        x_all = self.classifier(x_all)
+        
+        return x_all
+    
+    
+class TAGConv_3l_128h_w_k5(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_3l_128h_w_k5, self).__init__()
+        self.conv1 = TAGConv(data.num_features, 128, K=5)
+        self.conv2 = TAGConv(128, 128, K=5)
+        self.conv3 = TAGConv(128, int(data.num_classes), K=5)
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.conv3(x, edge_index, edge_attr)
+        return x
+    
+class TAGConv_3l_512h_w_k3(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_3l_512h_w_k3, self).__init__()
+        self.conv1 = TAGConv(data.num_features, 512)
+        self.conv2 = TAGConv(512, 512)
+        self.conv3 = TAGConv(512, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.conv3(x, edge_index, edge_attr)
+        return x
+    
+class TAGConv_3l_512h_nw_k3(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_3l_512h_nw_k3, self).__init__()
+        self.conv1 = TAGConv(data.num_features, 512)
+        self.conv2 = TAGConv(512, 512)
+        self.conv3 = TAGConv(512, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = self.conv3(x, edge_index)
+        return x
+    
+class TAGConv_3l_128h_nw_k3(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_3l_128h_nw_k3, self).__init__()
+        self.conv1 = TAGConv(data.num_features, 128)
+        self.conv2 = TAGConv(128, 128)
+        self.conv3 = TAGConv(128, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = self.conv3(x, edge_index)
+        return x
+    
+class TAGConv_9l_128h_k3(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_9l_128h_k3, self).__init__()
+        self.conv1 = TAGConv(data.num_features, 128)
+        self.conv2 = TAGConv(128, 128)
+        self.conv3 = TAGConv(128, 128)
+        self.conv4 = TAGConv(128, 128)
+        self.conv5 = TAGConv(128, 128)
+        self.conv6 = TAGConv(128, 128)
+        self.conv7 = TAGConv(128, 128)
+        self.conv8 = TAGConv(128, 128)
+        self.conv9 = TAGConv(128, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = F.elu(self.conv3(x, edge_index))
+        x = F.elu(self.conv4(x, edge_index))
+        x = F.elu(self.conv5(x, edge_index))
+        x = F.elu(self.conv6(x, edge_index))
+        x = F.elu(self.conv7(x, edge_index))
+        x = F.elu(self.conv8(x, edge_index))
+        x = self.conv9(x, edge_index)
+        return x
+    
+class TAGConv_9l_512h_nw_k3(torch.nn.Module):
+    def __init__(self, data):
+        super(TAGConv_9l_512h_nw_k3, self).__init__()
+        self.conv1 = TAGConv(data.num_features, 512)
+        self.conv2 = TAGConv(512, 512)
+        self.conv3 = TAGConv(512, 512)
+        self.conv4 = TAGConv(512, 512)
+        self.conv5 = TAGConv(512, 512)
+        self.conv6 = TAGConv(512, 512)
+        self.conv7 = TAGConv(512, 512)
+        self.conv8 = TAGConv(512, 512)
+        self.conv9 = TAGConv(512, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = F.elu(self.conv3(x, edge_index))
+        x = F.elu(self.conv4(x, edge_index))
+        x = F.elu(self.conv5(x, edge_index))
+        x = F.elu(self.conv6(x, edge_index))
+        x = F.elu(self.conv7(x, edge_index))
+        x = F.elu(self.conv8(x, edge_index))
+        x = self.conv9(x, edge_index)
+        return x
+    
+class GCNConv_3l_32h(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_3l_32h, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 32)
+        self.conv2 = GCNConv(32, 32)
+        self.conv3 = GCNConv(32, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = self.conv3(x, edge_index)
+        return x
+    
+class GCNConv_3l_128h_w(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_3l_128h_w, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 128)
+        self.conv2 = GCNConv(128, 128)
+        self.conv3 = GCNConv(128, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.conv3(x, edge_index, edge_attr)
+        return x    
+
+class GCNConv_3l_128h_nw(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_3l_128h_nw, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 128)
+        self.conv2 = GCNConv(128, 128)
+        self.conv3 = GCNConv(128, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = self.conv3(x, edge_index)
+        return x
+    
+class GCNConv_9l_128h_nw(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_9l_128h_nw, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 128)
+        self.conv2 = GCNConv(128, 128)
+        self.conv3 = GCNConv(128, 128)
+        self.conv4 = GCNConv(128, 128)
+        self.conv5 = GCNConv(128, 128)
+        self.conv6 = GCNConv(128, 128)
+        self.conv7 = GCNConv(128, 128)
+        self.conv8 = GCNConv(128, 128)
+        self.conv9 = GCNConv(128, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = F.elu(self.conv3(x, edge_index))
+        x = F.elu(self.conv4(x, edge_index))
+        x = F.elu(self.conv5(x, edge_index))
+        x = F.elu(self.conv6(x, edge_index))
+        x = F.elu(self.conv7(x, edge_index))
+        x = F.elu(self.conv8(x, edge_index))
+        x = self.conv9(x, edge_index)
+        return x
+    
+class GCNConv_3l_512h_nw(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_3l_512h_nw, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 512)
+        self.conv2 = GCNConv(512, 512)
+        self.conv3 = GCNConv(512, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = self.conv3(x, edge_index)
+        return x
+    
+class SSGConv_3l_128h_w_a05_k1(torch.nn.Module):
+    def __init__(self, data):
+        super(SSGConv_3l_128h_w_a05_k1, self).__init__()
+        self.conv1 = SSGConv(data.num_features, 128, alpha=0.5)
+        self.conv2 = SSGConv(128, 128, alpha=0.5)
+        self.conv3 = SSGConv(128, int(data.num_classes), alpha=0.5)
+
+    def forward(self, d):
+        x, edge_index, edge_attr = d.x.float(), d.edge_index, d.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.conv3(x, edge_index, edge_attr)
+        return x
+    
+class SSGConv_3l_128h_w_a09_k1(torch.nn.Module):
+    def __init__(self, data):
+        super(SSGConv_3l_128h_w_a09_k1, self).__init__()
+        self.conv1 = SSGConv(data.num_features, 128, alpha=0.9)
+        self.conv2 = SSGConv(128, 128, alpha=0.9)
+        self.conv3 = SSGConv(128, int(data.num_classes), alpha=0.9)
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.conv3(x, edge_index, edge_attr)
+        return x
+    
+class GINnn(torch.nn.Module):
+    def __init__(self, data):
+        super(GINnn, self).__init__()
+        self.gin = GIN(in_channels=data.num_features, hidden_channels=32, num_layers=3, out_channels=data.num_classes)
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        output = self.gin(x, edge_index)
+        return output
+    
+class SAGEConv_3l_128h(torch.nn.Module):
+    def __init__(self, data):
+        super(SAGEConv_3l_128h, self).__init__()
+        self.conv1 = SAGEConv(data.num_features, 128)
+        self.conv2 = SAGEConv(128, 128)
+        self.conv3 = SAGEConv(128, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.elu(self.conv2(x, edge_index))
+        x = self.conv3(x, edge_index)
+        return x
+
+class ChebConv_3l_128h_w_k3(torch.nn.Module):
+    def __init__(self, data):
+        super(ChebConv_3l_128h_w_k3, self).__init__()
+        self.conv1 = ChebConv(data.num_features, 128, K=3)
+        self.conv2 = ChebConv(128, 128, K=3)
+        self.conv3 = ChebConv(128, int(data.num_classes), K=3)
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.conv3(x, edge_index, edge_attr)
+        return x
+    
+class AttnGCN(torch.nn.Module):
+    def __init__(self, data):
+        super(AttnGCN, self).__init__()
+#         torch.manual_seed(1234)
+
+        self.emb1 = GCNConv(in_channels=5,
+                          out_channels=5,
+                          add_self_loops=False,
+                          normalize=False,
+                          aggr="mean"
+                          )
+
+        # self.emb2 = GCNConv(in_channels=5,
+        #                   out_channels=5,
+        #                   add_self_loops=False,
+        #                   normalize=False,
+        #                   aggr="mean"
+        #                   )
+        
+        self.att_conv1 = GATConv(in_channels=5,
+                             out_channels=64,
+                             heads=2, 
+                             edge_dim=1, 
+                             aggr="add")
+        self.att_conv2 = GATConv(in_channels=128,
+                             out_channels=64,
+                             heads=2, 
+                             edge_dim=1)
+        # self.conv3 = GATConv(in_channels=128,
+        #                      out_channels=128,
+        #                      heads=1, 
+        #                      edge_dim=1)
+        self.fc1 = Linear(128, 20)
+        self.fc2 = Linear(20, 20)
+        self.fc3 = Linear(20, 5)
+
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.emb1(h, edge_index, edge_weight)#.relu()
+        #h = self.emb2(h, edge_index, edge_weight).relu()
+        h = self.att_conv1(h, edge_index, edge_weight).relu()
+        #h = F.dropout(h, p=0.3, training=self.training)
+        
+        #h = self.att_conv2(h, edge_index, edge_weight).relu()
+        #h = F.dropout(h, p=0.3, training=self.training)
+        
+        #h = self.conv3(h, edge_index, edge_weight).relu()
+        #h = F.dropout(h, p=0.5, training=self.training)
+        
+        h = self.fc1(h).relu()
+        #h = F.dropout(h, p=0.1, training=self.training)
+        
+        h = self.fc2(h).relu()
+        #h = F.dropout(h, p=0.1, training=self.training)
+        
+        h = self.fc3(h)
+    
+        return h
 
 
 
