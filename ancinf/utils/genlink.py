@@ -644,7 +644,7 @@ class Trainer:
                 print('Training report')
                 print(classification_report(y_true, y_pred))
 
-            self.test()
+            return self.test()
 
 
 class TAGConv_3l_128h_w_k3(torch.nn.Module):
