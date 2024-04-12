@@ -4,13 +4,30 @@ import pandas as pd
 import numpy as np
 from os import listdir
 from os.path import isfile, join
+import os.path
+
 
 
 from .genlink import simulate_graph_fn, generate_matrices_fn
 from .baseheuristic import getprobandmeanmatrices, composegraphs, checkpartition, combinationgenerator
 from .baseheuristic import getrandompermutation, dividetrainvaltest
-from .runheuristic import translateconseqtodf
+from .runheuristic import translateconseqtodf, runheuristics
 from .ibdloader import load_pure, translate_indices
+
+
+import torch
+import numpy as np
+import random
+import sys
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
+from .genlink import DataProcessor, NullSimulator, Trainer, TAGConv_3l_128h_w_k3, TAGConv_3l_512h_w_k3            
+
+NNs = {
+    #"TAGConv_3l_128h_w_k3":TAGConv_3l_128h_w_k3,
+    "TAGConv_3l_512h_w_k3":TAGConv_3l_512h_w_k3
+}
+
+
 
 def labeldict_to_labellist(labeldict):
     count = len(labeldict)
@@ -294,18 +311,21 @@ def rungnn(workdir, infile, rng):
         explist = json.load(f)
     
     result = {}
+    #todo: unique runname for every run
+    #todo: multiple NNs
+    
     for dataset in explist:
         print("Running experiments for", dataset)
         datasetexplist = explist[dataset]
         datasetresults = []
-        for exp in datasetexplist:
+        for exp_idx, exp in enumerate(datasetexplist):
             
             datafile = os.path.join(workdir, exp["datafile"])
             
             with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
                 partitions = json.load(f)
-            expresults = []
-            for partition in partitions["partitions"]:
+            expresults = {nnclass:[] for nnclass in NNs} 
+            for part_idx, partition in enumerate(partitions["partitions"]):
 
                 train_list = []
                 val_list = []
@@ -318,17 +338,17 @@ def rungnn(workdir, infile, rng):
                 train_split = np.array(train_list)
                 valid_split = np.array(val_list)
                 test_split = np.array(test_list)
-                run_name = "temprunfile"
+                for nnclass in NNs:
+                    run_name = "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass
 
-                runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name) 
-                print("!!!!!!!! RUN COMPLETE!!!!!", runresult)
-                expresults.append(runresult)
+                    runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[nnclass]) 
+                    print("RUN COMPLETE!", nnclass, runresult)
+                    expresults[nnclass].append(runresult)
             
             print("experiment results for different splits:", expresults)
-            expresults = np.array(expresults)
-            metric_average = np.average(expresults)
-            metric_std = np.std(expresults)
-            datasetresults.append({"GNN": {"mean": metric_average, "std": metric_std}})
+            datasetresults.append({nnclass: {"mean": np.average(np.array(expresults[nnclass])), 
+                                             "std": np.std(np.array(expresults[nnclass])), 
+                                             "values":expresults[nnclass]} for nnclass in NNs})
         result[dataset] = datasetresults
     return result            
             
@@ -338,18 +358,27 @@ def runandsavegnn(workdir, infile, outfile, rng):
     with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
         json.dump(result, f, indent=4, sort_keys=True)            
             
+
             
-import pandas as pd
-import torch
-import numpy as np
-import random
-import sys
-import os.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
-from ancinf.utils.genlink import DataProcessor, NullSimulator, Trainer, TAGConv_3l_128h_w_k3, TAGConv_3l_512h_w_k3            
+def runandsaveall(workdir, infile, outfile, rng):
+    result = rungnn(workdir, infile, rng)
+    result2 = runheuristics(workdir, infile, rng)
+    for dataset in result:        
+        exps = result[dataset]
+        exps2 = result2[dataset]
+        
+        for idx in range(len(exps)):
+            exps[idx].update(exps2[idx])
+    with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
+        json.dump(result, f, indent=4, sort_keys=True)            
 
 
-def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, run_name):
+
+            
+            
+            
+
+def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, run_name, nnclass):
     '''
         returns f1 macro for one experiment
     '''
@@ -359,7 +388,7 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
 
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', run_name)
 
-    trainer = Trainer(dp, TAGConv_3l_128h_w_k3, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, f"runs/{run_name}", 2, 20)
+    trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, f"runs/{run_name}", 2, 20)
 
     return trainer.run()           
             
