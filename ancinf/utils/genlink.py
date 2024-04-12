@@ -255,9 +255,9 @@ class DataProcessor:
             self.valid_nodes = torch.load(valid_path).tolist()
             self.test_nodes = torch.load(test_path).tolist()
         if data_type == 'numpy':
-            self.train_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in np.load(train_path)]
-            self.valid_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in np.load(valid_path)]
-            self.test_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in np.load(test_path)]
+            self.train_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in train_path] # for numpy it is not a path, it is actual array
+            self.valid_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in valid_path]
+            self.test_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in test_path]
 
         if not (type(self.train_nodes) == list and type(self.valid_nodes) == list and type(self.test_nodes) == list):
             raise Exception('Node ids must be stored in Python lists!')
