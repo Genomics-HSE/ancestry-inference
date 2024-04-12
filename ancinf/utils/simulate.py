@@ -304,17 +304,29 @@ def rungnn(workdir, infile, rng):
             
             with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
                 partitions = json.load(f)
+            expresults = []
             for partition in partitions["partitions"]:
 
-                train_arr = []
-                val_arr = []
-                test_arr = []
+                train_list = []
+                val_list = []
+                test_list = []
+                for popl in partition["train"]:
+                    train_list = train_list + partition["train"][popl]   
+                    val_list = val_list + partition["val"][popl]   
+                    test_list = test_list + partition["test"][popl]   
+         
+                train_split = np.array(train_list)
+                valid_split = np.array(val_list)
+                test_split = np.array(test_list)
+                run_name = "temprunfile"
 
-                splitdict = { "train":train_arr, "val":val_arr, "test":test_arr }
-                df = pandas.read_csv(datafile)
-
-            runresult = run_gnn_external(df, splitdict)
-            datasetresults.append(runresult)
+                runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name) 
+                expresults.append(runresult)
+            
+            expresults = np.array(expresults)
+            metric_average = np.average(expresults)
+            metric_std = np.std(expresults)
+            datasetresults.append({"GNN": {"mean": metric_average, "std": metric_stdd}})
         result[dataset] = datasetresults
     return result            
             
@@ -323,6 +335,31 @@ def runandsavegnn(workdir, infile, outfile, rng):
     result = rungnn(workdir, infile, rng)
     with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
         json.dump(result, f, indent=4, sort_keys=True)            
+            
+            
+import pandas as pd
+import torch
+import numpy as np
+import random
+import sys
+import os.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
+from ancinf.utils.genlink import DataProcessor, NullSimulator, Trainer, TAGConv_3l_128h_w_k3, TAGConv_3l_512h_w_k3            
+
+
+def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, run_name):
+    '''
+        returns f1 macro for one experiment
+    '''
+    dp = DataProcessor(dataframe_path)
+
+    dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
+
+    dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', run_name)
+
+    trainer = Trainer(dp, TAGConv_3l_128h_w_k3, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, f"runs/{run_name}", 2, 20)
+
+    return trainer.run()           
             
             
         
