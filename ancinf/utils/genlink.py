@@ -588,7 +588,8 @@ class Trainer:
         y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_testing)
         print('Test report')
         print(classification_report(y_true, y_pred))
-        print(f"f1 macro score on test dataset: {f1_score(y_true, y_pred, average='macro')}")
+        score = f1_score(y_true, y_pred, average='macro')
+        print(f"f1 macro score on test dataset: {score}")
 
         cm = confusion_matrix(y_true, y_pred)
 
@@ -596,6 +597,8 @@ class Trainer:
         fig, ax = plt.subplots(1, 1)
         sns.heatmap(cm, annot=True, fmt=".2f", ax=ax)
         plt.show()
+
+        return score
 
     def run(self):
         if not os.path.exists(self.log_dir):
