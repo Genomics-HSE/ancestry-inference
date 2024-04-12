@@ -32,7 +32,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
-from torch.nn import Linear, LayerNorm, BatchNorm1d
+from torch.nn import Linear, LayerNorm, BatchNorm1d, Sequential, LeakyReLU, Dropout
 from torch_geometric.nn import GCNConv, GATConv, TransformerConv, NNConv, SGConv, ARMAConv, TAGConv, ChebConv, DNAConv, \
 EdgeConv, FiLMConv, FastRGCNConv, SSGConv, SAGEConv, GATv2Conv, BatchNorm, GraphNorm, MemPooling, SAGPooling, GINConv
 
@@ -1154,13 +1154,13 @@ class ChebConv_3l_128h_w_k3(torch.nn.Module):
 
 
 class AttnGCN(torch.nn.Module):
-    def __init__(self, dataset):
+    def __init__(self, data):
         super().__init__()
         n_features = 128
         n_heads = 2
         self.dp = 0.2
 
-        n_class = num_classes[dataset]
+        n_class = int(data.num_classes)
 
         self.conv1 = GATv2Conv(in_channels=n_class,
                                out_channels=n_features,
@@ -1210,11 +1210,11 @@ class AttnGCN(torch.nn.Module):
 
 
 class SimpleNN(torch.nn.Module):
-    def __init__(self, dataset):
+    def __init__(self, data):
         super().__init__()
         dp = 0.2
         hidden_dim = 128
-        n_class = num_classes[dataset]
+        n_class = int(data.num_classes)
         self.model = Sequential(
             Linear(3 * n_class, hidden_dim),
             BatchNorm1d(hidden_dim),
@@ -1241,10 +1241,10 @@ class SimpleNN(torch.nn.Module):
 
 
 class GCN(torch.nn.Module):
-    def __init__(self, dataset):
+    def __init__(self, data):
         super(GCN, self).__init__()
         hidden_dim = 128
-        n_class = num_classes[dataset]
+        n_class = int(data.num_classes)
         # First GCN layer with normalization
         self.conv1 = GCNConv(n_class, hidden_dim, normalize=True)
 
@@ -1267,68 +1267,14 @@ class GCN(torch.nn.Module):
         return x
 
 
-class GCN_simple(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-
-        self.norm1 = BatchNorm1d(5)
-
-        self.attn_conv = GATv2Conv(in_channels=5,
-                                   out_channels=128,
-                                   heads=2,
-                                   edge_dim=1,
-                                   aggr="mean",
-                                   concat=False,
-                                   share_weights=False,
-                                   add_self_loops=False
-                                   )
-        self.attn_norm = BatchNorm1d(128)
-
-        self.fc1 = Linear(128, 128)
-        self.norm_fc1 = BatchNorm1d(128)
-        self.fc2 = Linear(128, 5)
-        self.dp = 0.2
-
-    def forward(self, h, edge_index, edge_weight):
-        h = self.norm1(h)
-
-        h = self.attn_conv(h, edge_index, edge_weight)
-
-        h = self.fc1(h)
-        h = self.norm_fc1(h)
-        h = F.leaky_relu(h)
-        h = F.dropout(h, p=self.dp, training=self.training)
-
-        h = self.fc2(h)
-
-        return h
-
-
-
-
-
-class TAGConv_3l_512h_w_k3(torch.nn.Module):
-    def __init__(self, dataset):
-        super(TAGConv_3l_512h_w_k3, self).__init__()
-        n_class = num_classes[dataset]
-        self.conv1 = TAGConv(n_class, 128)
-        self.conv2 = TAGConv(128, 128)
-        self.conv3 = TAGConv(128, n_class)
-
-    def forward(self, x, edge_index, edge_weight):
-        x = F.elu(self.conv1(x, edge_index, edge_weight))
-        x = F.elu(self.conv2(x, edge_index, edge_weight))
-        x = self.conv3(x, edge_index, edge_weight)
-        return x
-
 
 
 
 
 class GINNet(torch.nn.Module):
-    def __init__(self, dataset):
+    def __init__(self, data):
         super(GINNet, self).__init__()
-        n_class = num_classes[dataset]
+        n_class = int(data.num_classes)
         hidden_dim = 128
         # GIN Convolution Layer
         self.conv1 = GINConv(
