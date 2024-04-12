@@ -328,7 +328,7 @@ def rungnn(workdir, infile, rng):
             expresults = np.array(expresults)
             metric_average = np.average(expresults)
             metric_std = np.std(expresults)
-            datasetresults.append({"GNN": {"mean": metric_average, "std": metric_stdd}})
+            datasetresults.append({"GNN": {"mean": metric_average, "std": metric_std}})
         result[dataset] = datasetresults
     return result            
             
