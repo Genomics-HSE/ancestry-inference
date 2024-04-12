@@ -139,7 +139,9 @@ def run(rng, datafile, valshare=None, testshare=None, itercount=None, partitions
     for feature in collectedmacros:
         if debug:
             print(f"{feature} f1 macro mean: {np.average(collectedmacros[feature]):.4f} std: {np.std(collectedmacros[feature]):.4f}" )
-        result[feature] = {"mean": np.average(collectedmacros[feature]), "std": np.std(collectedmacros[feature])}
+        result[feature] = {"mean": np.average(collectedmacros[feature]), 
+                           "std": np.std(collectedmacros[feature]), 
+                           "values":collectedmacros[feature] }
     return result
         
     
