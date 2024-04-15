@@ -23,7 +23,7 @@ import sys
 from .genlink import DataProcessor, NullSimulator, Trainer, TAGConv_3l_128h_w_k3, TAGConv_3l_512h_w_k3            
 
 NNs = {
-    #"TAGConv_3l_128h_w_k3":TAGConv_3l_128h_w_k3,
+    "TAGConv_3l_128h_w_k3":TAGConv_3l_128h_w_k3,
     "TAGConv_3l_512h_w_k3":TAGConv_3l_512h_w_k3
 }
 
