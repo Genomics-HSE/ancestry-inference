@@ -517,6 +517,32 @@ class DataProcessor:
         simulate_graph_fn(self.classes, means, counts, pop_index, path)        
         # remove isolated nodes
         # G.remove_nodes_from(list(nx.isolates(G)))
+        
+    def get_stats(self):
+        pass
+    
+    def plot_edge_weight_distribution(self, fig_size, save_path=None, custom_class_names=None, fontsize=8):
+        if custom_class_names is not None:
+            classes = custom_class_names
+        else:
+            classes = self.classes
+        img, axes = plt.subplots(len(classes), len(classes), figsize=fig_size)
+        for i in range(len(classes)):
+            for j in range(len(classes)):
+                weights = self.df.ibd_sum[((self.df.label_id1 == i) & (self.df.label_id2 == j)) | ((self.df.label_id1 == j) & (self.df.label_id2 == i))].to_numpy()
+                if len(weights) == 0:
+                    axes[i][j].set_title(f'{classes[i]} x {classes[j]}', fontsize=fontsize)
+                    continue
+                else:
+                    num_bins = int(2 * len(weights) ** (1/3))
+                    axes[i][j].hist(weights, bins=num_bins if num_bins > 10 else 10, color='#69b3a2', edgecolor='white', linewidth=1.2, density=True)
+                    axes[i][j].set_xlabel('edge weight')
+                    axes[i][j].set_ylabel('probability')
+                    axes[i][j].set_title(f'{classes[i]} x {classes[j]}', fontsize=fontsize)
+        if save_path is not None:
+            plt.savefig(save_path)
+        plt.show()
+        
 
 
 
