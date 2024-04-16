@@ -1,5 +1,6 @@
 import click
 import numpy as np
+import time
 
 from .utils import simulate as sim 
 from .utils import runheuristic
@@ -52,8 +53,9 @@ def preprocess(datadir, workdir, infile, outfile, seed):
         else:
             outfile = infile+'.explist'
     rng = np.random.default_rng(seed)
+    start = time.time()
     sim.preprocess(datadir, workdir, infile, outfile, rng)
-    print("Finished!")
+    print(f"Finished! Total {time.time()-start:.2f}s")
 
 
 #STAGE 2 SIMULATE
@@ -73,8 +75,9 @@ def simulate(workdir, infile, outfile, seed):
             outfile = infile+'.explist'
             
     rng = np.random.default_rng(seed)
+    start = time.time()
     sim.simulateandsave(workdir, infile, outfile, rng)
-    print("Finished!")
+    print(f"Finished! Total {time.time()-start:.2f}s")
     
     
 #STAGE3 HEURISTICS
@@ -93,10 +96,11 @@ def heuristics(workdir, infile, outfile, seed):
             outfile = infile[:position]+'.result'
         else:
             outfile = infile+'.result'
+    start = time.time()
     runheuristic.runandsaveheuristics(workdir, infile, outfile, rng)
-    print("Finished!")
+    print(f"Finished! Total {time.time()-start:.2f}s")
     
-    
+#STAGE4 GNN    
 @cli.command()
 @click.argument("workdir")
 @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
@@ -112,11 +116,12 @@ def gnn(workdir, infile, outfile, seed):
             outfile = infile[:position]+'.result'
         else:
             outfile = infile+'.result'
+    start = time.time()
     sim.runandsavegnn(workdir, infile, outfile, rng)
-    print("Finished!")
+    print(f"Finished! Total {time.time()-start:.2f}s.")
 
     
-    
+#STAGE5 HEURISTICS AND GNNS
 @cli.command()
 @click.argument("workdir")
 @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
@@ -132,8 +137,9 @@ def runall(workdir, infile, outfile, seed):
             outfile = infile[:position]+'.result'
         else:
             outfile = infile+'.result'
+    start = time.time()            
     sim.runandsaveall(workdir, infile, outfile, rng)
-    print("Finished!")    
+    print(f"Finished! Total {time.time()-start:.2f}s.")    
     
     
 
