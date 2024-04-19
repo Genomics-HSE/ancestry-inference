@@ -391,7 +391,75 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
     trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, f"runs/{run_name}", 2, 20)
 
     return trainer.run()           
-            
+
+
+def getplotdata(explistfile, resultfile, parameter):
+    '''
+         combine experiment results into data usable for plotting
+         
+    Parameters
+    ----------
+    explistfile: str
+        .expfile filename
+    resultsfile: str
+        .result filename
+    parameter: str
+        parameter name that is varied across experiments
+        
+    Returns
+    -------
+    results: dict
+        for every dataset we have a dict of 'x's (parameter values)
+        param name and classifier mean
+    '''
+    with open(explistfile,'r') as f:
+        explist = json.load(f)
+    with open(resultfile,'r') as f:
+        res = json.load(f)
+
+    plotdata = {}
+    for dataset in explist:
+        print(dataset)
+        datasetdata = {classifier:[] for classifier in res[dataset][0]}
+        datasetdata["param"] = parameter
+        datasetdata["x"] = []
+        for expidx in range(len(explist[dataset])):
+            #print("experiment", expidx)
+            exp = explist[dataset][expidx]
+            result = res[dataset][expidx]
+            datasetdata["x"].append(exp["experiment"][parameter])
+            for classifier in result:
+                datasetdata[classifier].append(result[classifier]['mean'])
+
+        plotdata[dataset] = datasetdata
+    return plotdata    
+
+def plotclassifierdependency(plotdata, classifierlist):
+    '''
+         Plot selected classifier quality dependence on parameter
+         
+    Parameters
+    ----------
+    plotdata: dict
+        data produced by getplotdata
+    classifierlist: list
+        specify classifiers to plot their quality
+        
+    Returns
+    -------
+     
+    '''
+    from matplotlib import pyplot as plt
+    plt.rcParams["figure.figsize"] = (14,7)
+    for dataset in plotdata:
+        for classifier in classifierlist:
+            plt.plot(plotdata[dataset]['x'], plotdata[dataset][classifier], label=classifier)
+    
+        plt.title(dataset+": "+plotdata[dataset]["param"])
+        plt.legend()
+        plt.show()
+
+
             
         
 if __name__=="__main__":
