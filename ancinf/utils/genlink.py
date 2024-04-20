@@ -154,6 +154,7 @@ class DataProcessor:
         self.mean_weight = None
         self.offset = 8.0
         self.df = pd.read_csv(path)
+        self.nx_graph = nx.from_pandas_edgelist(self.df, source='node_id1', target='node_id2', edge_attr='ibd_sum')
         self.node_names_to_int_mapping: dict[str, int] = self.get_node_names_to_int_mapping(self.get_unique_nodes(self.df))
         self.classes: list[str] = self.get_classes(self.df)
         self.node_classes_sorted: pd.DataFrame = self.get_node_classes(self.df)
@@ -164,7 +165,7 @@ class DataProcessor:
         self.array_of_graphs_for_training = []
         self.array_of_graphs_for_validation = []
         self.array_of_graphs_for_testing = []
-        self.rng = np.random.default_rng(42)
+        # self.rng = np.random.default_rng(42)
         
     def get_classes(self, df):
         # return ['карачаевцы,балкарцы', 'осетины', 'кабардинцы,черкесы,адыгейцы','ингуши','кумыки','ногайцы','чеченцы','дагестанские народы']
@@ -1330,7 +1331,8 @@ class GINNet(torch.nn.Module):
         # Output layer
         self.fc = torch.nn.Linear(hidden_dim, n_class)
 
-    def forward(self, x, edge_index, edge_weight):
+    def forward(self, data):
+        x, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
         # Apply GIN Convolution layers
         x = F.relu(self.conv1(x, edge_index))
         x = F.relu(self.conv2(x, edge_index))
