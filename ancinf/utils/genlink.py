@@ -154,11 +154,11 @@ class DataProcessor:
         self.mean_weight = None
         self.offset = 8.0
         self.df = pd.read_csv(path)
-        self.nx_graph = nx.from_pandas_edgelist(self.df, source='node_id1', target='node_id2', edge_attr='ibd_sum')
         self.node_names_to_int_mapping: dict[str, int] = self.get_node_names_to_int_mapping(self.get_unique_nodes(self.df))
         self.classes: list[str] = self.get_classes(self.df)
         self.node_classes_sorted: pd.DataFrame = self.get_node_classes(self.df)
         self.class_to_int_mapping: dict[int, str] = {i:n for i, n in enumerate(self.classes)}
+        self.nx_graph = nx.from_pandas_edgelist(self.df, source='node_id1', target='node_id2', edge_attr='ibd_sum') # line order matters because self.df is modified in above functions
         self.train_nodes = None
         self.valid_nodes = None
         self.test_nodes = None
