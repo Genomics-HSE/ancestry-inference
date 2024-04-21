@@ -745,6 +745,7 @@ class Trainer:
 def independent_test(model_path, model_cls, df, vertex_id):
     
     dp = DataProcessor(df, is_path_object=True)
+    dp.classes.remove('unknown')
     unique_nodes = list(pd.concat([df['node_id1'], df['node_id2']], axis=0).unique().to_numpy())
     unique_nodes.remove(f'node_{vertex_id}')
     train_split = np.array(unique_nodes)
