@@ -760,7 +760,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     
     p = F.softmax(self.model(dp.array_of_graphs_for_testing[0].to(device))[-1], dim=0).cpu().detach().numpy()
     dp.array_of_graphs_for_testing[0].to('cpu')
-    return np.argmax(p)
+    return dp.classes[np.argmax(p)]
     
     
         
