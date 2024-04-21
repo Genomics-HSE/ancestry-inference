@@ -33,8 +33,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
 from torch.nn import Linear, LayerNorm, BatchNorm1d, Sequential, LeakyReLU, Dropout
-from torch_geometric.nn import GCNConv, GATConv, TransformerConv, NNConv, SGConv, ARMAConv, TAGConv, ChebConv, DNAConv, \
-EdgeConv, FiLMConv, FastRGCNConv, SSGConv, SAGEConv, GATv2Conv, BatchNorm, GraphNorm, MemPooling, SAGPooling, GINConv
+from torch_geometric.nn import GCNConv, GATConv, TransformerConv, NNConv, SGConv, ARMAConv, TAGConv, ChebConv, DNAConv, LabelPropagation, \
+EdgeConv, FiLMConv, FastRGCNConv, SSGConv, SAGEConv, GATv2Conv, BatchNorm, GraphNorm, MemPooling, SAGPooling, GINConv 
 
 
 def symmetrize(m):
@@ -688,10 +688,10 @@ class Trainer:
 
         return score
 
-    def run(self):
+    def run(self, cuda_device_specified: int = None):
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if cuda_device_specified is None else torch.device(f'cuda:{cuda_device_specified}' if torch.cuda.is_available() else 'cpu')
         self.model = self.model_cls(self.data.array_of_graphs_for_training[0]).to(self.device) # just initialize the parameters of the model
         criterion = self.loss_fn(weight=self.weight)
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
@@ -733,6 +733,27 @@ class Trainer:
                 print(classification_report(y_true, y_pred))
 
             return self.test()
+        
+        
+        
+class BaselineMethods:
+    def __init__(self, data: DataProcessor):
+        self.data = data
+        
+    def torch_geometric_label_propagation(self, num_layers, alpha, use_weight=True):
+        model = LabelPropagation(num_layers=num_layers, alpha=alpha)
+        
+        y_pred = []
+        y_true = []
+        for i in range(len(self.data.array_of_graphs_for_testing)):
+            graph = self.data.array_of_graphs_for_testing[i]
+            y_true.append(graph.y[-1])
+            y_pred.append(model(y=graph.y, mask = [True] * (len(graph.y)-1) + [False],  edge_index=graph.edge_index, edge_weight=graph.weight if use_weight==True else None).argmax(dim=-1)[-1]) # -1 is always test vertex
+            
+        score = f1_score(y_true, y_pred, average='macro')
+        print(f"f1 macro score on test dataset: {score}")
+            
+        
 
 
 class TAGConv_3l_128h_w_k3(torch.nn.Module):
