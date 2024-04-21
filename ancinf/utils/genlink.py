@@ -675,6 +675,9 @@ class Trainer:
         print(classification_report(y_true, y_pred))
         score = f1_score(y_true, y_pred, average='macro')
         print(f"f1 macro score on test dataset: {score}")
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred, average='binary', pos_label=i)
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
 
         cm = confusion_matrix(y_true, y_pred)
 
