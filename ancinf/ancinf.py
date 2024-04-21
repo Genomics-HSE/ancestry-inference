@@ -140,10 +140,41 @@ def runall(workdir, infile, outfile, seed):
     start = time.time()            
     sim.runandsaveall(workdir, infile, outfile, rng)
     print(f"Finished! Total {time.time()-start:.2f}s.")    
-    
-    
 
+#INFERENCE STAGES
     
+    
+#GNN DEBUG&TEST STAGES
+@cli.command()
+@click.argument("workdir")
+@click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
+@click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
+@click.option("--seed", default=2023, help="Random seed")
+def gnncleancheck(workdir, traindfname, infdfname):
+    '''
+    #-> traindataframe, one-node-infdataframe, node_idname, model, weights 
+    #for every node in inferencedf
+    #1. create train+one-node-infdataframe
+    #2. send to inference
+    #3. compare with true 
+    '''
+    pass
+    
+    
+def preparecleancheck(workdir, datafilename, cleanshare, seed):
+    '''
+        get dataframe and split into train-test-val (1-cleanshare for every class) 
+        and clean-test (share for every class)
+    '''
+    rng = np.random.default_rng(seed)  
+    position = datafilename.find('.csv')
+    if position>0:
+        outfile = infile[:position]+'.result'
+    else:
+        outfile = infile+'.result'
+    tranfilename = 
+    cleanfilename = 
+    sim.preparecleancheck(workdir, datafilename, trainfilename, cleanfilename, cleanshare, rng)
     
 def main():
     cli()
