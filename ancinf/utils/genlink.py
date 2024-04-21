@@ -20,6 +20,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.semi_supervised import LabelPropagation
 from sklearn.neighbors import KNeighborsClassifier
 from scipy.stats import bernoulli
 from sklearn.model_selection import train_test_split
@@ -145,7 +146,7 @@ def simulate_graph_fn(classes, means, counts, pop_index, path):
 
 
 class DataProcessor:
-    def __init__(self, path):
+    def __init__(self, path, is_path_object=False):
         self.dataset_name: str = None
         self.train_size: float = None
         self.valid_size: float = None
@@ -153,7 +154,7 @@ class DataProcessor:
         self.edge_probs = None
         self.mean_weight = None
         self.offset = 8.0
-        self.df = pd.read_csv(path)
+        self.df = path if is_path_object else pd.read_csv(path)
         self.node_names_to_int_mapping: dict[str, int] = self.get_node_names_to_int_mapping(self.get_unique_nodes(self.df))
         self.classes: list[str] = self.get_classes(self.df)
         self.node_classes_sorted: pd.DataFrame = self.get_node_classes(self.df)
@@ -260,6 +261,11 @@ class DataProcessor:
             self.train_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in train_path] # for numpy it is not a path, it is actual array
             self.valid_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in valid_path]
             self.test_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in test_path]
+            
+        # if data_type == 'object':
+        #     self.train_nodes = train_path
+        #     self.valid_nodes = valid_path
+        #     self.test_nodes = test_path
 
         if not (type(self.train_nodes) == list and type(self.valid_nodes) == list and type(self.test_nodes) == list):
             raise Exception('Node ids must be stored in Python lists!')
@@ -687,6 +693,7 @@ class Trainer:
         plt.show()
 
         return score
+        
 
     def run(self, cuda_device_specified: int = None):
         if not os.path.exists(self.log_dir):
@@ -734,7 +741,30 @@ class Trainer:
 
             return self.test()
         
+     
+def independent_test(model_path, model_cls, df, vertex_id):
+    
+    dp = DataProcessor(df, is_path_object=True)
+    unique_nodes = list(pd.concat([df['node_id1'], df['node_id2']], axis=0).unique().to_numpy())
+    unique_nodes.remove(f'node_{vertex_id}')
+    train_split = np.array(unique_nodes)
+    valid_split = np.array(train_split[:2])
+    test_split = np.array([vertex_id])
+    dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
+    dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'debug_debug')
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model_cls(dp.array_of_graphs_for_training[0]).to(device)
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    
+    p = F.softmax(self.model(dp.array_of_graphs_for_testing[0].to(device))[-1], dim=0).cpu().detach().numpy()
+    dp.array_of_graphs_for_testing[0].to('cpu')
+    return np.argmax(p)
+    
+    
         
+
         
 class BaselineMethods:
     def __init__(self, data: DataProcessor):
@@ -747,11 +777,16 @@ class BaselineMethods:
         y_true = []
         for i in range(len(self.data.array_of_graphs_for_testing)):
             graph = self.data.array_of_graphs_for_testing[i]
+            # print(graph.x[-1])
             y_true.append(graph.y[-1])
             y_pred.append(model(y=graph.y, mask = [True] * (len(graph.y)-1) + [False],  edge_index=graph.edge_index, edge_weight=graph.weight if use_weight==True else None).argmax(dim=-1)[-1]) # -1 is always test vertex
             
         score = f1_score(y_true, y_pred, average='macro')
         print(f"f1 macro score on test dataset: {score}")
+        
+    def sklearn_lebale_propagation():
+        print('Better for 15-dim vectors')
+        pass
             
         
 
