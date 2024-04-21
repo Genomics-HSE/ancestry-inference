@@ -20,11 +20,14 @@ import numpy as np
 import random
 import sys
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
-from .genlink import DataProcessor, NullSimulator, Trainer, TAGConv_3l_128h_w_k3, TAGConv_3l_512h_w_k3            
+from .genlink import DataProcessor, NullSimulator, Trainer, TAGConv_3l_128h_w_k3, \
+                  TAGConv_3l_512h_w_k3, GINNet
 
 NNs = {
-    "TAGConv_3l_128h_w_k3":TAGConv_3l_128h_w_k3,
-    "TAGConv_3l_512h_w_k3":TAGConv_3l_512h_w_k3
+    "GINNet": GINNet,
+    "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
+    "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3
+    
 }
 
 
@@ -374,10 +377,6 @@ def runandsaveall(workdir, infile, outfile, rng):
 
 
 
-            
-            
-            
-
 def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, run_name, nnclass):
     '''
         returns f1 macro for one experiment
@@ -447,7 +446,7 @@ def plotclassifierdependency(plotdata, classifierlist):
         
     Returns
     -------
-     
+    
     '''
     from matplotlib import pyplot as plt
     plt.rcParams["figure.figsize"] = (14,7)
