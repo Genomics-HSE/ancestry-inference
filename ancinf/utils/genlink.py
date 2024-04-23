@@ -346,7 +346,7 @@ class DataProcessor:
 
         return rows_for_adding_per_node
 
-    def generate_graph(self, curr_nodes, specific_node, dict_node_classes, df):
+    def generate_graph(self, curr_nodes, specific_node, dict_node_classes, df, log_edge_weights):
 
         hashmap = self.make_hashmap(curr_nodes)
         features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
@@ -360,14 +360,14 @@ class DataProcessor:
 
         graph = Data.from_dict(
             {'y': torch.tensor(targets, dtype=torch.long), 'x': torch.tensor(features),
-             'weight': torch.tensor(weighted_edges[:, 2]),
+             'weight': torch.log(torch.tensor(weighted_edges[:, 2])) if log_edge_weights else torch.tensor(weighted_edges[:, 2]),
              'edge_index': torch.tensor(weighted_edges[:, :2].T, dtype=torch.long)})
 
         graph.num_classes = len(self.classes)
 
         return graph
 
-    def make_train_valid_test_datasets_with_numba(self, feature_type, model_type, train_dataset_type, test_dataset_type, dataset_name):
+    def make_train_valid_test_datasets_with_numba(self, feature_type, model_type, train_dataset_type, test_dataset_type, dataset_name, log_edge_weights=False):
 
         self.dataset_name = dataset_name
 
@@ -386,7 +386,7 @@ class DataProcessor:
                 for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
                     curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
 
-                    graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training)
+                    graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training, log_edge_weights)
 
                     self.array_of_graphs_for_training.append(graph)
 
@@ -405,7 +405,7 @@ class DataProcessor:
                     specific_node = self.valid_nodes[k]
                     current_valid_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation)
+                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights)
 
                     self.array_of_graphs_for_validation.append(graph)
 
@@ -424,7 +424,7 @@ class DataProcessor:
                     specific_node = self.test_nodes[k]
                     current_test_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing)
+                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights)
 
                     self.array_of_graphs_for_testing.append(graph)
 
