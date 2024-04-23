@@ -10,7 +10,7 @@ import os.path
 
 from .genlink import simulate_graph_fn, generate_matrices_fn
 from .baseheuristic import getprobandmeanmatrices, composegraphs, checkpartition, combinationgenerator
-from .baseheuristic import getrandompermutation, dividetrainvaltest
+from .baseheuristic import getrandompermutation, dividetrainvaltest, gettrainvaltestnodes
 from .runheuristic import translateconseqtodf, runheuristics
 from .ibdloader import load_pure, translate_indices
 
@@ -246,21 +246,53 @@ def simulateandsave(workdir, infile, outfile, rng):
     with open(experimentlistfile,"w") as f:
         json.dump(expfiledict, f, indent=4, sort_keys=True)
 
-def filterandsaveonedataset(indatafilename, outdatafilename, filters):
+def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare, cleandatafilename, rng):
     pairs, weights, labels, labeldict, idxtranslator = load_pure( indatafilename, debug=False, **(filters))
     conseq_pairs = translate_indices(pairs, idxtranslator)
     labellist = labeldict_to_labellist(labeldict)
     
-    with open(outdatafilename, 'w', encoding="utf-8") as f:
-        f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
-        for idx, pair in enumerate(pairs):
-            i = conseq_pairs[idx][0]
-            j = conseq_pairs[idx][1]
-            label_i = labellist[labels[i]]
-            label_j = labellist[labels[j]]
-            name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
-            name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
-            f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
+    if not (cleanshare is None):
+        #todo remove all edges to nodes from cleanshare into separate file
+        graphdata = composegraphs(pairs, weights, labels, labeldict, idxtranslator)
+        ncls = graphdata[0]['nodeclasses']
+        grph = graphdata[0]['graph']
+        trns = graphdata[0]['translation']
+        #translate indices in ncls to original indices
+        permt = getrandompermutation(ncls, rng)
+        trainnodeclasses, valnodeclasses, testnodeclasses = dividetrainvaltest(ncls, 0, cleanshare, permt)
+        part_ok, part_errors = checkpartition(grph, trainnodeclasses, valnodeclasses, testnodeclasses, details=False, trns=trns)
+        if not part_ok:
+            print("bad partition for clean dataset part")                    
+        trainnodes, _, testnodes = gettrainvaltestnodes(trainnodeclasses, valnodeclasses, testnodeclasses)
+        print("clean nodes:", idxtranslator[testnodes])
+        with open(outdatafilename, 'w', encoding="utf-8") as f:
+            with open(cleandatafilename, 'w', encoding="utf-8") as f2:
+                f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+                f2.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+                for idx, pair in enumerate(pairs):
+                    i = conseq_pairs[idx][0]
+                    j = conseq_pairs[idx][1]                    
+                    label_i = labellist[labels[i]]
+                    label_j = labellist[labels[j]]
+                    name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
+                    name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
+                    if (i in trainnodes) and (j in trainnodes):
+                        f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
+                    else:
+                        f2.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
+
+        
+    else:
+        with open(outdatafilename, 'w', encoding="utf-8") as f:
+            f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+            for idx, pair in enumerate(pairs):
+                i = conseq_pairs[idx][0]
+                j = conseq_pairs[idx][1]
+                label_i = labellist[labels[i]]
+                label_j = labellist[labels[j]]
+                name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
+                name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
+                f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
             
 
     
@@ -290,8 +322,15 @@ def preprocess(datadir, workdir, infile, outfile, rng):
         indatafilename = os.path.join(datadir, datasetname+'.csv' )
         outdatafilename = os.path.join(workdir, projname+'_'+datasetname+'.csv' )
         partfilename = os.path.join(workdir, projname+'_'+datasetname+'.split' )
-
-        filterandsaveonedataset(indatafilename, outdatafilename, datasetparams["filters"])
+        
+        cleanshare = None
+        cleandatafilename = ""
+        if "cleanshare" in trainparams:
+            cleanshare = trainparams["cleanshare"]
+            cleandatafilename = os.path.join(workdir, projname+'_'+datasetname+'_clean.csv' )
+            
+        
+        filterandsaveonedataset(indatafilename, outdatafilename, datasetparams["filters"], cleanshare, cleandatafilename, rng)
 
         savepartitions(outdatafilename, trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], partfilename, rng)
 
@@ -300,6 +339,8 @@ def preprocess(datadir, workdir, infile, outfile, rng):
                    "training": trainparams,
                    "partitionfile":partfilename
         }
+        if "cleanshare" in trainparams:
+            expdict["cleanfile"] = cleandatafilename
         experimentlist.append(expdict)            
         expfiledict[datasetname] = experimentlist 
         
