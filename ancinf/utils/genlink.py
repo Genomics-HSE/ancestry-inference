@@ -756,7 +756,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     unique_nodes = list(pd.concat([df['node_id1'], df['node_id2']], axis=0).unique())
     unique_nodes.remove(f'node_{vertex_id}')
     train_split = np.array(list(map(lambda x: int(x[5:]), unique_nodes)))
-    valid_split = train_split[:2]
+    valid_split = np.array([vertex_id])
     test_split = np.array([vertex_id])
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'debug_debug')
