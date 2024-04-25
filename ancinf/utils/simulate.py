@@ -441,7 +441,9 @@ def rungnn(workdir, infile, rng):
                         inferredlabels = []
                         for node in cleannodes:
                             print("infering class for node", node)
-                            inferredlabels.append( independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node ) )
+                            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node )
+                            print("clean test classification", testresult)
+                            inferredlabels.append( testresult )
 
                         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
                         expresults[nnclass].append(runresult)
