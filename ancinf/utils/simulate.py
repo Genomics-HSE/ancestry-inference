@@ -8,7 +8,7 @@ import os.path
 
 
 
-from .genlink import simulate_graph_fn, generate_matrices_fn
+from .genlink import simulate_graph_fn, generate_matrices_fn, independent_test
 from .baseheuristic import getprobandmeanmatrices, composegraphs, checkpartition, combinationgenerator
 from .baseheuristic import getrandompermutation, dividetrainvaltest, gettrainvaltestnodes
 from .runheuristic import translateconseqtodf, runheuristics
@@ -19,8 +19,10 @@ import torch
 import numpy as np
 import random
 import sys
+from sklearn.metrics import f1_score
+
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
-from .genlink import DataProcessor, NullSimulator, Trainer, TAGConv_3l_128h_w_k3, \
+from .genlink import DataProcessor, NullSimulator, Trainer,  TAGConv_3l_128h_w_k3, \
                   TAGConv_3l_512h_w_k3, GINNet
 
 NNs = {
@@ -247,6 +249,7 @@ def simulateandsave(workdir, infile, outfile, rng):
         json.dump(expfiledict, f, indent=4, sort_keys=True)
 
 def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare, cleandatafilename, rng):
+    retval = None
     pairs, weights, labels, labeldict, idxtranslator = load_pure( indatafilename, debug=False, **(filters))
     conseq_pairs = translate_indices(pairs, idxtranslator)
     labellist = labeldict_to_labellist(labeldict)
@@ -264,7 +267,11 @@ def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare
         if not part_ok:
             print("bad partition for clean dataset part")                    
         trainnodes, _, testnodes = gettrainvaltestnodes(trainnodeclasses, valnodeclasses, testnodeclasses)
-        print("clean nodes:", idxtranslator[testnodes])
+        clnodes = idxtranslator[testnodes].tolist()
+        #print("clean nodes:", clnodes)
+        cllabels = [labellist[lbl] for lbl in labels[testnodes] ] 
+        #print("clean node labels:", cllabels)
+        retval = {"cleannodes":clnodes, "cleannodelabels":cllabels}
         with open(outdatafilename, 'w', encoding="utf-8") as f:
             with open(cleandatafilename, 'w', encoding="utf-8") as f2:
                 f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
@@ -276,10 +283,19 @@ def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare
                     label_j = labellist[labels[j]]
                     name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
                     name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
-                    if (i in trainnodes) and (j in trainnodes):
+                    if (i in trainnodes) and (j in trainnodes):                        
                         f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
                     else:
-                        f2.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
+                        if i in testnodes:                            
+                            if j in testnodes:
+                                #we do not want edges between clean nodes
+                                pass
+                            else:
+                                f2.write(f'node_{pair[0]},node_{pair[1]},unknown,{name_j},{weights[idx][0]},{pair[2]}\n')
+                        elif j in testnodes:
+                            f2.write(f'node_{pair[0]},node_{pair[1]},{name_i},unknown,{weights[idx][0]},{pair[2]}\n')
+                        else:
+                            print("ERROR! No node from pair belong to train or clean partitions")
 
         
     else:
@@ -294,7 +310,7 @@ def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare
                 name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
                 f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
             
-
+    return retval
     
         
 def preprocess(datadir, workdir, infile, outfile, rng):
@@ -330,7 +346,7 @@ def preprocess(datadir, workdir, infile, outfile, rng):
             cleandatafilename = os.path.join(workdir, projname+'_'+datasetname+'_clean.csv' )
             
         
-        filterandsaveonedataset(indatafilename, outdatafilename, datasetparams["filters"], cleanshare, cleandatafilename, rng)
+        retval = filterandsaveonedataset(indatafilename, outdatafilename, datasetparams["filters"], cleanshare, cleandatafilename, rng)
 
         savepartitions(outdatafilename, trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], partfilename, rng)
 
@@ -341,6 +357,8 @@ def preprocess(datadir, workdir, infile, outfile, rng):
         }
         if "cleanshare" in trainparams:
             expdict["cleanfile"] = cleandatafilename
+            expdict["cleannodes"] =  retval["cleannodes"]
+            expdict["cleannodelabels"] = retval["cleannodelabels"]
         experimentlist.append(expdict)            
         expfiledict[datasetname] = experimentlist 
         
@@ -383,16 +401,54 @@ def rungnn(workdir, infile, rng):
                 valid_split = np.array(val_list)
                 test_split = np.array(test_list)
                 for nnclass in NNs:
-                    run_name = "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass
-
-                    runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[nnclass]) 
+                    run_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass)
+                    runresult = 0.02 #simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[nnclass]) 
                     print("RUN COMPLETE!", nnclass, runresult)
                     expresults[nnclass].append(runresult)
             
             print("experiment results for different splits:", expresults)
-            datasetresults.append({nnclass: {"mean": np.average(np.array(expresults[nnclass])), 
-                                             "std": np.std(np.array(expresults[nnclass])), 
+            datasetresults.append({nnclass: {"mean": np.average(expresults[nnclass]), 
+                                             "std": np.std(expresults[nnclass]), 
                                              "values":expresults[nnclass]} for nnclass in NNs})
+            #now clean test if requested
+            if "cleanfile" in exp:
+                print("Running clean inference test")
+                #prepare dataframes once for all neuronetworks
+                #compose df from dfmain and edges to node from dfclean
+                cleanfile = os.path.join(workdir, exp["cleanfile"])
+                dfmain = pd.read_csv(datafile)
+                dfclean = pd.read_csv(cleanfile)
+                    
+                
+                cleantestdataframes = {}
+                cleannodes = exp["cleannodes"]
+                #cleannodestxt = ["node_"+str(nd) for nd in cleannodes]
+                cleannodelabels = exp["cleannodelabels"]
+                for node in cleannodes:
+                    fltr1 = dfclean[dfclean["node_id1"] =="node_" +str(node)]
+                    #fltr1 = fltr1[not (fltr1["node_id2"] in cleannodestxt)]
+                    fltr2 = dfclean[dfclean["node_id2"] =="node_" +str(node)]                    
+                    #fltr2 = fltr2[not (fltr2["node_id1"] in cleannodestxt)]
+                    onenodedf = pd.concat([dfmain, fltr1, fltr2])
+                    cleantestdataframes[node] = onenodedf
+                
+                ##               
+                expresults = {nnclass:[] for nnclass in NNs}
+                for part_idx, partition in enumerate(partitions["partitions"]):                    
+                    for nnclass in NNs:
+                        run_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass, "model_best.bin" )
+                        inferredlabels = []
+                        for node in cleannodes:                            
+                            inferredlabels.append( independent_test(run_name, NNs[nnclass], cleantestdataframes[node], "node_"+str(node) ) )
+
+                        runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
+                        expresults[nnclass].append(runresult)
+                
+                for nnclass in NNs:
+                    datasetresults[nnclass].update({"clean_mean": np.average(expresults[nnclass]), 
+                                             "clean_std": np.std(expresults[nnclass]), 
+                                             "clean_values":expresults[nnclass]} )
+            
         result[dataset] = datasetresults
     return result            
             
@@ -417,7 +473,7 @@ def runandsaveall(workdir, infile, outfile, rng):
         json.dump(result, f, indent=4, sort_keys=True)            
 
 
-
+#TODO runname -> workdir
 def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, run_name, nnclass):
     '''
         returns f1 macro for one experiment
@@ -428,7 +484,7 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
 
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', run_name)
 
-    trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, f"runs/{run_name}", 2, 20)
+    trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, run_name, 2, 20)
 
     return trainer.run()           
 
