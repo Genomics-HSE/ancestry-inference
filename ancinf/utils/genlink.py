@@ -367,7 +367,7 @@ class DataProcessor:
 
         return graph
 
-    def make_train_valid_test_datasets_with_numba(self, feature_type, model_type, train_dataset_type, test_dataset_type, dataset_name, log_edge_weights=False):
+    def make_train_valid_test_datasets_with_numba(self, feature_type, model_type, train_dataset_type, test_dataset_type, dataset_name, log_edge_weights=False, skip_train_val=False):
 
         self.dataset_name = dataset_name
 
@@ -383,31 +383,33 @@ class DataProcessor:
                 df_for_training = df_for_training.drop(drop_rows)
 
                 # make training samples
-                for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
-                    curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
+                if not skip_train_val:
+                    for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
+                        curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
 
-                    graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training, log_edge_weights)
+                        graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training, log_edge_weights)
 
-                    self.array_of_graphs_for_training.append(graph)
+                        self.array_of_graphs_for_training.append(graph)
 
                 # make validation samples
-                rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
-                                                                               np.array(self.train_nodes),
-                                                                               np.array(self.valid_nodes))
-                for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples'):
-                    rows_for_adding = rows_for_adding_per_node[k]
-                    df_for_validation = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
+                if not skip_train_val:
+                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                                                                                   np.array(self.train_nodes),
+                                                                                   np.array(self.valid_nodes))
+                    for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples'):
+                        rows_for_adding = rows_for_adding_per_node[k]
+                        df_for_validation = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
 
-                    if df_for_validation.shape[0] == df_for_training.shape[0]:
-                        print('Isolated val node found! Restart with different seed or this node will be ignored.')
-                        continue
+                        if df_for_validation.shape[0] == df_for_training.shape[0]:
+                            print('Isolated val node found! Restart with different seed or this node will be ignored.')
+                            continue
 
-                    specific_node = self.valid_nodes[k]
-                    current_valid_nodes = self.train_nodes + [specific_node]
+                        specific_node = self.valid_nodes[k]
+                        current_valid_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights)
+                        graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights)
 
-                    self.array_of_graphs_for_validation.append(graph)
+                        self.array_of_graphs_for_validation.append(graph)
 
                 # make testing samples
                 rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
@@ -759,7 +761,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     valid_split = np.array([vertex_id])
     test_split = np.array([vertex_id])
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
-    dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'debug_debug')
+    dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'debug_debug', skip_train_val=True)
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model_cls(dp.array_of_graphs_for_training[0]).to(device)
