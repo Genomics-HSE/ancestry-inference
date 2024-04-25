@@ -544,13 +544,16 @@ class DataProcessor:
                     continue
                 else:
                     num_bins = int(2 * len(weights) ** (1/3))
-                    counts, bins, bars = axes[i][j].hist(weights, bins=num_bins if num_bins > 10 else 10, color='#69b3a2', edgecolor='white', linewidth=1.2, density=True)
+                    final_num_bins = num_bins if num_bins > 10 else 10
+                    counts, bins, bars = axes[i][j].hist(weights, bins=final_num_bins, color='#69b3a2', edgecolor='white', linewidth=1.2, density=True)
                     axes[i][j].set_xlabel('edge weight')
                     axes[i][j].set_ylabel('probability')
                     axes[i][j].set_title(f'{classes[i]} x {classes[j]}', fontsize=fontsize)
                     
-                    points = np.linspace(np.min(weights), np.max(weights), num_bins)
-                    axes[i][j].plot(bins, expon.pdf(points, loc=8.0, scale=np.mean(weights)))
+                    points = np.linspace(np.min(weights), np.max(weights), final_num_bins)
+                    str_lables_start = r'$\frac{1}{\lambda}$'
+                    axes[i][j].plot(bins[:-1] + (bins[1] - bins[0]) / 2, expon.pdf(points, loc=8.0, scale=np.mean(weights)), label=f'simulation, {str_lables_start}={np.round(np.mean(weights), 1)}', linestyle='--', marker='o', color='b')
+                    axes[i][j].legend()
         if save_path is not None:
             plt.savefig(save_path)
         plt.show()
@@ -630,10 +633,10 @@ class NullSimulator:
 
 
 class Trainer:
-    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, weight=None):
+    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, weight=None, cuda_device_specified: int = None):
         self.data = data
         self.model = None
-        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if cuda_device_specified is None else torch.device(f'cuda:{cuda_device_specified}' if torch.cuda.is_available() else 'cpu')
         self.model_cls = model_cls
         self.learning_rate = lr
         self.weight_decay = wd
@@ -703,10 +706,9 @@ class Trainer:
         return score
         
 
-    def run(self, cuda_device_specified: int = None):
+    def run(self):
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if cuda_device_specified is None else torch.device(f'cuda:{cuda_device_specified}' if torch.cuda.is_available() else 'cpu')
         self.model = self.model_cls(self.data.array_of_graphs_for_training[0]).to(self.device) # just initialize the parameters of the model
         criterion = self.loss_fn(weight=self.weight)
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
