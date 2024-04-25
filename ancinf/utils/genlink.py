@@ -751,11 +751,11 @@ class Trainer:
 
 def independent_test(model_path, model_cls, df, vertex_id):
     
-    dp = DataProcessor(df, is_path_object=True)
+    dp = DataProcessor(df.copy(), is_path_object=True)
     dp.classes.remove('unknown')
-    unique_nodes = list(pd.concat([dp.df['node_id1'], dp.df['node_id2']], axis=0).unique())
-    unique_nodes.remove(dp.node_names_to_int_mapping[f'node_{vertex_id}'])
-    train_split = np.array(unique_nodes)
+    unique_nodes = list(pd.concat([df['node_id1'], df['node_id2']], axis=0).unique())
+    unique_nodes.remove(f'node_{vertex_id}')
+    train_split = np.array(list(map(lambda x: int(x[5:]), unique_nodes)))
     valid_split = train_split[:2]
     test_split = np.array([vertex_id])
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
