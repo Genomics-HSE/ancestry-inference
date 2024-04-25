@@ -764,7 +764,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'debug_debug', skip_train_val=True)
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = model_cls(dp.array_of_graphs_for_training[0]).to(device)
+    model = model_cls(dp.array_of_graphs_for_testing[0]).to(device)
     model.load_state_dict(torch.load(model_path))
     model.eval()
     
