@@ -439,7 +439,7 @@ def rungnn(workdir, infile, rng):
                         run_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass, "model_best.bin" )
                         inferredlabels = []
                         for node in cleannodes:                            
-                            inferredlabels.append( independent_test(run_name, NNs[nnclass], cleantestdataframes[node], "node_"+str(node) ) )
+                            inferredlabels.append( independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node ) )
 
                         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
                         expresults[nnclass].append(runresult)
