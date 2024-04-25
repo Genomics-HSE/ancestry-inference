@@ -430,7 +430,8 @@ def rungnn(workdir, infile, rng):
                     fltr2 = dfclean[dfclean["node_id2"] =="node_" +str(node)]                    
                     #fltr2 = fltr2[not (fltr2["node_id1"] in cleannodestxt)]
                     onenodedf = pd.concat([dfmain, fltr1, fltr2])
-                    cleantestdataframes[node] = onenodedf
+                    #onenodedf.reset_index(drop=True)
+                    cleantestdataframes[node] = onenodedf.reset_index(drop=True)
                 
                 ##               
                 expresults = {nnclass:[] for nnclass in NNs}
@@ -438,7 +439,8 @@ def rungnn(workdir, infile, rng):
                     for nnclass in NNs:
                         run_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass, "model_best.bin" )
                         inferredlabels = []
-                        for node in cleannodes:                            
+                        for node in cleannodes:
+                            print("infering class for node", node)
                             inferredlabels.append( independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node ) )
 
                         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
