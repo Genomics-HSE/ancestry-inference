@@ -26,8 +26,8 @@ from .genlink import DataProcessor, NullSimulator, Trainer,  TAGConv_3l_128h_w_k
                   TAGConv_3l_512h_w_k3, GINNet
 
 NNs = {
-    "GINNet": GINNet,
-    "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
+    #"GINNet": GINNet,
+    #"TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
     "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3
     
 }
@@ -449,7 +449,7 @@ def rungnn(workdir, infile, rng):
                         expresults[nnclass].append(runresult)
                 
                 for nnclass in NNs:
-                    datasetresults[nnclass].update({"clean_mean": np.average(expresults[nnclass]), 
+                    datasetresults[exp_idx][nnclass].update({"clean_mean": np.average(expresults[nnclass]), 
                                              "clean_std": np.std(expresults[nnclass]), 
                                              "clean_values":expresults[nnclass]} )
             
