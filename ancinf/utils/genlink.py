@@ -754,7 +754,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     dp = DataProcessor(df, is_path_object=True)
     dp.classes.remove('unknown')
     unique_nodes = list(pd.concat([dp.df['node_id1'], dp.df['node_id2']], axis=0).unique())
-    unique_nodes.remove(dp.node_names_to_int_mapping(f'node_{vertex_id}'))
+    unique_nodes.remove(dp.node_names_to_int_mapping[f'node_{vertex_id}'])
     train_split = np.array(unique_nodes)
     valid_split = np.array(train_split[:2])
     test_split = np.array([vertex_id])
