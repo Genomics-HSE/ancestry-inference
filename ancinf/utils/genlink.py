@@ -542,13 +542,13 @@ class DataProcessor:
                     continue
                 else:
                     num_bins = int(2 * len(weights) ** (1/3))
-                    axes[i][j].hist(weights, bins=num_bins if num_bins > 10 else 10, color='#69b3a2', edgecolor='white', linewidth=1.2, density=True)
+                    counts, bins, bars = axes[i][j].hist(weights, bins=num_bins if num_bins > 10 else 10, color='#69b3a2', edgecolor='white', linewidth=1.2, density=True)
                     axes[i][j].set_xlabel('edge weight')
                     axes[i][j].set_ylabel('probability')
                     axes[i][j].set_title(f'{classes[i]} x {classes[j]}', fontsize=fontsize)
                     
                     points = np.linspace(np.min(weights), np.max(weights), num_bins)
-                    axes[i][j].plot(expon.pdf(points, loc=8.0, scale=np.mean(weights)))
+                    axes[i][j].plot(bins, expon.pdf(points, loc=8.0, scale=np.mean(weights)))
         if save_path is not None:
             plt.savefig(save_path)
         plt.show()
@@ -756,7 +756,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     unique_nodes = list(pd.concat([dp.df['node_id1'], dp.df['node_id2']], axis=0).unique())
     unique_nodes.remove(dp.node_names_to_int_mapping[f'node_{vertex_id}'])
     train_split = np.array(unique_nodes)
-    valid_split = np.array(train_split[:2])
+    valid_split = train_split[:2]
     test_split = np.array([vertex_id])
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'debug_debug')
