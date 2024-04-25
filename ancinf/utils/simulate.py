@@ -402,7 +402,7 @@ def rungnn(workdir, infile, rng):
                 test_split = np.array(test_list)
                 for nnclass in NNs:
                     run_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass)
-                    runresult = 0.02 #simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[nnclass]) 
+                    runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[nnclass]) 
                     print("RUN COMPLETE!", nnclass, runresult)
                     expresults[nnclass].append(runresult)
             
@@ -490,7 +490,7 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
 
     trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, run_name, 2, 20)
 
-    return trainer.run()           
+    return trainer.run(cuda_device_specified=1)           
 
 
 def getplotdata(explistfile, resultfile, parameter):
