@@ -766,7 +766,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     model.load_state_dict(torch.load(model_path))
     model.eval()
     
-    p = F.softmax(self.model(dp.array_of_graphs_for_testing[0].to(device))[-1], dim=0).cpu().detach().numpy()
+    p = F.softmax(model(dp.array_of_graphs_for_testing[0].to(device))[-1], dim=0).cpu().detach().numpy()
     dp.array_of_graphs_for_testing[0].to('cpu')
     return dp.classes[np.argmax(p)]
     
