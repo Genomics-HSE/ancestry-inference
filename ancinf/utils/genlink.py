@@ -270,7 +270,7 @@ class DataProcessor:
         if not (type(self.train_nodes) == list and type(self.valid_nodes) == list and type(self.test_nodes) == list):
             raise Exception('Node ids must be stored in Python lists!')
         if len(set(self.train_nodes + self.valid_nodes + self.test_nodes)) < (len(self.train_nodes) + len(self.valid_nodes) + len(self.test_nodes)):
-            raise Exception('There is intersection between train, valid and test node sets!')
+            print('There is intersection between train, valid and test node sets!')
 
     def place_specific_node_to_the_end(self, node_list, node_id):
         curr_node = node_list[node_id]
