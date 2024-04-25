@@ -548,7 +548,7 @@ class DataProcessor:
                     axes[i][j].set_title(f'{classes[i]} x {classes[j]}', fontsize=fontsize)
                     
                     points = np.linspace(np.min(weights), np.max(weights), num_bins)
-                    axes[i][j].plot(expon.pdf(points, loc=0, scale=np.mean(weights)))
+                    axes[i][j].plot(expon.pdf(points, loc=8.0, scale=np.mean(weights)))
         if save_path is not None:
             plt.savefig(save_path)
         plt.show()
@@ -754,7 +754,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     dp = DataProcessor(df, is_path_object=True)
     dp.classes.remove('unknown')
     unique_nodes = list(pd.concat([df['node_id1'], df['node_id2']], axis=0).unique())
-    unique_nodes.remove(f'node_{vertex_id}')
+    unique_nodes.remove(vertex_id)
     train_split = np.array(unique_nodes)
     valid_split = np.array(train_split[:2])
     test_split = np.array([vertex_id])
