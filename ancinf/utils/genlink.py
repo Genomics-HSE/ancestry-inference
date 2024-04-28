@@ -270,7 +270,7 @@ class DataProcessor:
         if not (type(self.train_nodes) == list and type(self.valid_nodes) == list and type(self.test_nodes) == list):
             raise Exception('Node ids must be stored in Python lists!')
         if len(set(self.train_nodes + self.valid_nodes + self.test_nodes)) < (len(self.train_nodes) + len(self.valid_nodes) + len(self.test_nodes)):
-            print('There is intersection between train, valid and test node sets!')
+            print('There is intersection between train, valid and test node sets!') #####################################################################################################################################################################################################
 
     def place_specific_node_to_the_end(self, node_list, node_id):
         curr_node = node_list[node_id]
@@ -280,7 +280,7 @@ class DataProcessor:
         return new_node_list, curr_node
 
     def make_hashmap(self, nodes):
-        hashmap = np.array([1e3 for i in range(self.node_classes_sorted.shape[0])]).astype(int)
+        hashmap = np.array([int(len(nodes)+1) for i in range(self.node_classes_sorted.shape[0])]).astype(int)
         for i, node in enumerate(nodes):
             hashmap[node] = i
 
@@ -296,6 +296,41 @@ class DataProcessor:
                 features[hashmap[int(n)], :] = [1 if i == dict_node_classes[n] else 0 for i in range(len(self.classes))]
 
         return features
+    
+    @staticmethod
+    @njit(cache=True, parallel=True)
+    def make_graph_based_features(df, hashmap, test_node, num_classes, num_nodes):
+        
+        features_num_edges = np.zeros((num_nodes, num_classes))
+        features_ibd_tmp = np.zeros((num_nodes, df.shape[0], num_classes))
+        features_ibd = np.zeros((num_nodes, num_classes*2))
+        
+        for i in range(df.shape[0]):
+            row = df[i]
+            if int(row[0]) == test_node:
+                features_num_edges[hashmap[int(row[0])], int(row[3])] += 1
+                features_ibd_tmp[hashmap[int(row[0])], hashmap[int(row[1])], int(row[3])] += row[4]
+            elif int(row[1]) == test_node:
+                features_num_edges[hashmap[int(row[1])], int(row[2])] += 1
+                features_ibd_tmp[hashmap[int(row[1])], hashmap[int(row[0])], int(row[2])] += row[4]
+            else:
+                features_num_edges[hashmap[int(row[0])], int(row[3])] += 1
+                features_num_edges[hashmap[int(row[1])], int(row[2])] += 1
+                features_ibd_tmp[hashmap[int(row[0])], hashmap[int(row[1])], int(row[3])] += row[4]
+                features_ibd_tmp[hashmap[int(row[1])], hashmap[int(row[0])], int(row[2])] += row[4]
+                
+        for i in prange(num_nodes): # enhance speed in future by using part of training features for test and validation features
+            for j in range(num_classes):
+                current_ibd_features = features_ibd_tmp[i, :, j]
+                current_ibd_features = current_ibd_features[current_ibd_features != 0]
+                if len(current_ibd_features) != 0:
+                    features_ibd[i, j] = np.mean(current_ibd_features)
+                    features_ibd[i, num_classes+j] = np.std(current_ibd_features)
+                else:
+                    features_ibd[i, j] = 0
+                    features_ibd[i, num_classes+j] = 0
+                
+        return np.concatenate((features_num_edges, features_ibd), axis=1)
 
     def construct_node_classes(self, nodes, dict_node_classes):
         targets = []
@@ -346,11 +381,16 @@ class DataProcessor:
 
         return rows_for_adding_per_node
 
-    def generate_graph(self, curr_nodes, specific_node, dict_node_classes, df, log_edge_weights):
+    def generate_graph(self, curr_nodes, specific_node, dict_node_classes, df, log_edge_weights, feature_type):
 
         hashmap = self.make_hashmap(curr_nodes)
-        features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
-                                                      dict_node_classes)
+        if feature_type == 'one_hot':
+            features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
+                                                          dict_node_classes)
+        elif feature_type == 'graph_based':
+            features = self.make_graph_based_features(df.to_numpy(), hashmap, specific_node, len(self.classes), len(curr_nodes))
+        else:
+            raise Exception('Such feature type is not known!')
         targets = self.construct_node_classes(curr_nodes, dict_node_classes)
         weighted_edges = self.construct_edges(df.to_numpy(), hashmap)
 
@@ -374,6 +414,8 @@ class DataProcessor:
         self.array_of_graphs_for_training = []
         self.array_of_graphs_for_testing = []
         self.array_of_graphs_for_validation = []
+        
+        assert list(self.df.columns)[:5] == ['node_id1', 'node_id2', 'label_id1', 'label_id2', 'ibd_sum']
 
         if feature_type == 'one_hot' and model_type == 'homogeneous':
             if train_dataset_type == 'multiple' and test_dataset_type == 'multiple':
@@ -387,7 +429,7 @@ class DataProcessor:
                     for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
                         curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
 
-                        graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training, log_edge_weights)
+                        graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training, log_edge_weights, feature_type)
 
                         self.array_of_graphs_for_training.append(graph)
 
@@ -407,7 +449,7 @@ class DataProcessor:
                         specific_node = self.valid_nodes[k]
                         current_valid_nodes = self.train_nodes + [specific_node]
 
-                        graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights)
+                        graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights, feature_type)
 
                         self.array_of_graphs_for_validation.append(graph)
 
@@ -426,22 +468,21 @@ class DataProcessor:
                     specific_node = self.test_nodes[k]
                     current_test_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights)
+                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights, feature_type)
 
                     self.array_of_graphs_for_testing.append(graph)
 
-        elif feature_type == '15_dim' and model_type == 'homogeneous':
-            if train_dataset_type == 'multiple' and test_dataset_type == 'multiple':
+        elif feature_type == 'graph_based' and model_type == 'homogeneous':
+            if train_dataset_type == 'one' and test_dataset_type == 'multiple':
                 dict_node_classes = self.node_classes_to_dict()
                 df_for_training = self.df.copy()
                 drop_rows = self.drop_rows_for_training_dataset(self.df.to_numpy(), self.valid_nodes + self.test_nodes)
                 df_for_training = df_for_training.drop(drop_rows)
 
                 # make training samples
-                for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
-                    curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
+                for k in tqdm(range(1), desc='Make train samples'):
 
-                    graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training)
+                    graph = self.generate_graph(self.train_nodes, -1, dict_node_classes, df_for_training, log_edge_weights, feature_type)
 
                     self.array_of_graphs_for_training.append(graph)
 
@@ -460,7 +501,7 @@ class DataProcessor:
                     specific_node = self.valid_nodes[k]
                     current_valid_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation)
+                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights, feature_type)
 
                     self.array_of_graphs_for_validation.append(graph)
 
@@ -479,7 +520,7 @@ class DataProcessor:
                     specific_node = self.test_nodes[k]
                     current_test_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing)
+                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights, feature_type)
 
                     self.array_of_graphs_for_testing.append(graph)
 
@@ -633,7 +674,7 @@ class NullSimulator:
 
 
 class Trainer:
-    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, weight=None, cuda_device_specified: int = None):
+    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, feature_type, train_iterations_per_sample, evaluation_steps, weight=None, cuda_device_specified: int = None):
         self.data = data
         self.model = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if cuda_device_specified is None else torch.device(f'cuda:{cuda_device_specified}' if torch.cuda.is_available() else 'cpu')
@@ -648,17 +689,30 @@ class Trainer:
         self.num_epochs = num_epochs
         self.max_f1_score_macro = 0
         self.patience_counter = 0
+        self.feature_type = feature_type
+        self.train_iterations_per_sample = train_iterations_per_sample
+        self.evaluation_steps = evaluation_steps
 
     def compute_metrics_cross_entropy(self, graphs):
         y_true = []
         y_pred = []
 
-        for i in tqdm(range(len(graphs)), desc='Compute metrics'):
-            p = F.softmax(self.model(graphs[i].to(self.device))[-1],
-                          dim=0).cpu().detach().numpy()
-            y_pred.append(np.argmax(p))
-            y_true.append(graphs[i].y[-1].cpu().detach())
-            graphs[i].to('cpu')
+        if self.feature_type == 'one_hot':
+            for i in tqdm(range(len(graphs)), desc='Compute metrics'):
+                p = F.softmax(self.model(graphs[i].to(self.device))[-1],
+                              dim=0).cpu().detach().numpy()
+                y_pred.append(np.argmax(p))
+                y_true.append(graphs[i].y[-1].cpu().detach())
+                graphs[i].to('cpu')
+        elif self.feature_type == 'graph_based':
+            for i in tqdm(range(len(graphs)), desc='Compute metrics'):
+                p = F.softmax(self.model(graphs[i].to(self.device)),
+                              dim=0).cpu().detach().numpy()
+                y_pred = np.argmax(p, axis=1)
+                y_true = graphs[i].y.cpu().detach()
+                graphs[i].to('cpu')
+        else:
+            raise Exception('Trainer is not implemented for such feature type name while calculating training scores!')
 
         return y_true, y_pred
 
@@ -718,36 +772,64 @@ class Trainer:
         self.patience_counter = 0
 
         if self.loss_fn == torch.nn.CrossEntropyLoss:
-            for i in tqdm(range(self.num_epochs), desc='Training epochs'):
-                if self.patience_counter == self.patience:
-                    break
-                self.evaluation(i)
+            if self.feature_type == 'one_hot':
+                for i in tqdm(range(self.num_epochs), desc='Training epochs'):
+                    if self.patience_counter == self.patience:
+                        break
+                    self.evaluation(i)
 
-                self.model.train()
+                    self.model.train()
 
-                selector = np.array([i for i in range(len(self.data.array_of_graphs_for_training))])
-                np.random.shuffle(selector)
+                    selector = np.array([i for i in range(len(self.data.array_of_graphs_for_training))])
+                    np.random.shuffle(selector)
 
-                mean_epoch_loss = []
+                    mean_epoch_loss = []
 
-                pbar = tqdm(range(len(selector)), desc='Training samples')
-                pbar.set_postfix({'val_best_score': self.max_f1_score_macro})
-                for j in pbar:
-                    n = selector[j]
-                    data_curr = self.data.array_of_graphs_for_training[n].to(self.device)
-                    optimizer.zero_grad()
-                    out = self.model(data_curr)
-                    loss = criterion(out[-1], data_curr.y[-1])
-                    loss.backward()
-                    mean_epoch_loss.append(loss.detach().cpu().numpy())
-                    optimizer.step()
-                    scheduler.step()
-                    self.data.array_of_graphs_for_training[n].to('cpu')
+                    pbar = tqdm(range(len(selector)), desc='Training samples')
+                    pbar.set_postfix({'val_best_score': self.max_f1_score_macro})
+                    for j in pbar:
+                        n = selector[j]
+                        data_curr = self.data.array_of_graphs_for_training[n].to(self.device)
+                        optimizer.zero_grad()
+                        out = self.model(data_curr)
+                        loss = criterion(out[-1], data_curr.y[-1])
+                        loss.backward()
+                        mean_epoch_loss.append(loss.detach().cpu().numpy())
+                        optimizer.step()
+                        scheduler.step()
+                        self.data.array_of_graphs_for_training[n].to('cpu')
 
-                y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training)
+                    y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training)
 
-                print('Training report')
-                print(classification_report(y_true, y_pred))
+                    print('Training report')
+                    print(classification_report(y_true, y_pred))
+                    
+                elif self.feature_type == 'graph_based':
+                    data_curr = self.data.array_of_graphs_for_training[0].to(self.device)
+                    self.model.train()
+                    for i in tqdm(range(self.train_iterations_per_sample), desc='Training iterations'):
+                        if self.patience_counter == self.patience:
+                            break
+                        if i % self.evaluation_steps == 0:
+                            y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training)
+
+                            print('Training report')
+                            print(classification_report(y_true, y_pred))
+                            
+                            self.data.array_of_graphs_for_training[0].to('cpu')
+                            self.evaluation(i)
+                            self.model.train()
+                            self.data.array_of_graphs_for_training[0].to(self.device)
+
+                        optimizer.zero_grad()
+                        out = self.model(data_curr)
+                        loss = criterion(out[-1], data_curr.y[-1])
+                        loss.backward()
+                        optimizer.step()
+                        scheduler.step()
+
+                else:
+                    raise Exception('Trainer is not implemented for such feature type name!')
 
             return self.test()
         
