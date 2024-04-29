@@ -494,13 +494,9 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', run_name, log_edge_weights=False)
 
     trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, run_name, 2, 20,
-                      'graph_based', 1, 
+                      'graph_based', 1, 1,
                       cuda_device_specified=1)
 
-    def __init__(self, data: DataProcessor model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, 
-                 
-                 feature_type, train_iterations_per_sample, evaluation_steps, weight=None, cuda_device_specified: int = None)
-    
     
     return trainer.run()           
 
