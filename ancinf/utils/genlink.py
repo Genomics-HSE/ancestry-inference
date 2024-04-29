@@ -804,32 +804,32 @@ class Trainer:
                     print('Training report')
                     print(classification_report(y_true, y_pred))
                     
-                elif self.feature_type == 'graph_based':
-                    data_curr = self.data.array_of_graphs_for_training[0].to(self.device)
-                    self.model.train()
-                    for i in tqdm(range(self.train_iterations_per_sample), desc='Training iterations'):
-                        if self.patience_counter == self.patience:
-                            break
-                        if i % self.evaluation_steps == 0:
-                            y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training)
+            elif self.feature_type == 'graph_based':
+                data_curr = self.data.array_of_graphs_for_training[0].to(self.device)
+                self.model.train()
+                for i in tqdm(range(self.train_iterations_per_sample), desc='Training iterations'):
+                    if self.patience_counter == self.patience:
+                        break
+                    if i % self.evaluation_steps == 0:
+                        y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training)
 
-                            print('Training report')
-                            print(classification_report(y_true, y_pred))
-                            
-                            self.data.array_of_graphs_for_training[0].to('cpu')
-                            self.evaluation(i)
-                            self.model.train()
-                            self.data.array_of_graphs_for_training[0].to(self.device)
+                        print('Training report')
+                        print(classification_report(y_true, y_pred))
 
-                        optimizer.zero_grad()
-                        out = self.model(data_curr)
-                        loss = criterion(out[-1], data_curr.y[-1])
-                        loss.backward()
-                        optimizer.step()
-                        scheduler.step()
+                        self.data.array_of_graphs_for_training[0].to('cpu')
+                        self.evaluation(i)
+                        self.model.train()
+                        self.data.array_of_graphs_for_training[0].to(self.device)
 
-                else:
-                    raise Exception('Trainer is not implemented for such feature type name!')
+                    optimizer.zero_grad()
+                    out = self.model(data_curr)
+                    loss = criterion(out[-1], data_curr.y[-1])
+                    loss.backward()
+                    optimizer.step()
+                    scheduler.step()
+
+            else:
+                raise Exception('Trainer is not implemented for such feature type name!')
 
             return self.test()
         
@@ -878,7 +878,7 @@ class BaselineMethods:
         score = f1_score(y_true, y_pred, average='macro')
         print(f"f1 macro score on test dataset: {score}")
         
-    def sklearn_lebale_propagation():
+    def sklearn_label_propagation():
         print('Better for 15-dim vectors')
         pass
             
