@@ -27,12 +27,14 @@ from .genlink import DataProcessor, NullSimulator, Trainer,  TAGConv_3l_128h_w_k
                   TAGConv_9l_512h_nw_k3
 
 NNs = {
+    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
+    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
     "GINNet": GINNet,
     "AttnGCN": AttnGCN,
     "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
     "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3,
-    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
-    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
+    
+    
     
     
 }
