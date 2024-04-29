@@ -1375,7 +1375,7 @@ class AttnGCN(torch.nn.Module):
     #         self.norm3 = BatchNorm1d(n_features)
 
     def forward(self, data):
-        x, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        x_input, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
         h = self.conv1(x_input, edge_index, edge_weight)
         h = self.norm1(h)
         h = F.leaky_relu(h)
