@@ -24,15 +24,20 @@ from sklearn.metrics import f1_score
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
 from .genlink import DataProcessor, NullSimulator, Trainer,  TAGConv_3l_128h_w_k3, \
                   TAGConv_3l_512h_w_k3, GINNet, AttnGCN, TAGConv_9l_128h_k3,\
-                  TAGConv_9l_512h_nw_k3
+                  TAGConv_9l_512h_nw_k3, MLP_3l_128h, MLP_3l_512h, MLP_9l_128h,\
+                  MLP_9l_512h
 
 NNs = {
-    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
-    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
-    "GINNet": GINNet,
-    "AttnGCN": AttnGCN,
-    "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
-    "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3,
+    "MLP_3l_128h": MLP_3l_128h,
+    "MLP_3l_512h": MLP_3l_512h,
+    "MLP_9l_128h": MLP_9l_128h,
+    "MLP_9l_512h": MLP_9l_512h    
+#    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
+#    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
+#    "GINNet": GINNet,
+#    "AttnGCN": AttnGCN,
+#    "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
+#    "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3,
     
     
     
@@ -495,9 +500,12 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
 
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', run_name, log_edge_weights=False)
 
+    #gnns
     trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, run_name, 2, 20,
-                      'one_hot', 1, 1,
-                      cuda_device_specified=1)
+                      'one_hot', 1, 1, cuda_device_specified=1)
+    #mlps
+    trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, run_name, 2, 20,
+                      'graph_based', 10, 1, cuda_device_specified=1)
 
     
     return trainer.run()           
