@@ -29,7 +29,7 @@ from sklearn.model_selection import train_test_split
 from torch_geometric.utils.convert import from_networkx
 from torch_geometric.data import InMemoryDataset, Data
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
-from sklearn.cluster import SpectralClustering
+from sklearn.cluster import SpectralClustering, AgglomerativeClustering
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics.cluster import homogeneity_score
 from sklearn.preprocessing import LabelEncoder
@@ -975,7 +975,42 @@ class BaselineMethods:
         plt.show()
     
     def agglomerative_clustering(self):
-        pass
+        y_pred_classes = []
+        y_pred_cluster = []
+        y_true = []
+        
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Agglomerative clustering'):
+            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
+            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+            for c in nx.connected_components(G_test_init):
+                if self.data.test_nodes[i] in c:
+                    G_test = G_test_init.subgraph(c).copy()
+            if len(G_test.nodes) == 1:
+                print('Isolated test node found, skipping!')
+                continue
+            else:
+                distance = self.simrank_distance(G_test)
+                preds = AgglomerativeClustering(n_clusters=int(len(self.data.classes)), linkage='complete', compute_full_tree=True, metric='precomputed').fit_predict(distance)
+
+                ground_truth = []
+                nodes_ibd_sum = nx.get_node_attributes(G_test, name='class')
+                # print(len(G_test.nodes))
+                # print(nodes_ibd_sum)
+                for node in G_test.nodes:
+                    ground_truth.append(nodes_ibd_sum[node])
+
+                graph_test_node_list = list(G_test.nodes)
+                y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
+                y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
+
+                cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
+                y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
+                
+        print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
+        score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {score}")
+        
+        return score
             
         
     def sklearn_label_propagation():
