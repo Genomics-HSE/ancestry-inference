@@ -27,7 +27,9 @@ from sklearn.model_selection import train_test_split
 from torch_geometric.utils.convert import from_networkx
 from torch_geometric.data import InMemoryDataset, Data
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
+from sklearn.cluster import SpectralClustering
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics.cluster import homogeneity_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -159,7 +161,7 @@ class DataProcessor:
         self.classes: list[str] = self.get_classes(self.df)
         self.node_classes_sorted: pd.DataFrame = self.get_node_classes(self.df)
         self.class_to_int_mapping: dict[int, str] = {i:n for i, n in enumerate(self.classes)}
-        self.nx_graph = nx.from_pandas_edgelist(self.df, source='node_id1', target='node_id2', edge_attr='ibd_sum') # line order matters because self.df is modified in above functions
+        self.nx_graph = self.make_networkx_graph() # line order matters because self.df is modified in above functions
         self.train_nodes = None
         self.valid_nodes = None
         self.test_nodes = None
@@ -167,6 +169,15 @@ class DataProcessor:
         self.array_of_graphs_for_validation = []
         self.array_of_graphs_for_testing = []
         # self.rng = np.random.default_rng(42)
+        
+    def make_networkx_graph(self):
+        G = nx.from_pandas_edgelist(self.df, source='node_id1', target='node_id2', edge_attr='ibd_sum')
+        node_attr = dict()
+        for i in range(self.node_classes_sorted.shape[0]):
+            row = self.node_classes_sorted.iloc[i, :]
+            node_attr[row[0]] = {'class':row[1]}
+        nx.set_node_attributes(G, node_attr)
+        return G
         
     def get_classes(self, df):
         # return ['карачаевцы,балкарцы', 'осетины', 'кабардинцы,черкесы,адыгейцы','ингуши','кумыки','ногайцы','чеченцы','дагестанские народы']
@@ -869,7 +880,7 @@ class BaselineMethods:
         
         y_pred = []
         y_true = []
-        for i in range(len(self.data.array_of_graphs_for_testing)):
+        for i in tqdm(range(len(self.data.array_of_graphs_for_testing)), desc='TG label propagation'):
             graph = self.data.array_of_graphs_for_testing[i]
             # print(graph.x[-1])
             y_true.append(graph.y[-1])
@@ -878,8 +889,70 @@ class BaselineMethods:
         score = f1_score(y_true, y_pred, average='macro')
         print(f"f1 macro score on test dataset: {score}")
         
+        return score
+    
+    def map_cluster_labels_with_target_classes(self, cluster_labels, target_labels):
+        # vouter algorithm
+        uniq_targets = np.unique(target_labels)
+        uniq_clusters = np.unique(cluster_labels)
+        vouter = {cluster_class:{target_class:0 for target_class in uniq_targets} for cluster_class in uniq_clusters}
+        
+        for i in range(len(cluster_labels)):
+            c_l = cluster_labels[i]
+            t_l = target_labels[i]
+            vouter[c_l][t_l] += 1
+            
+        mapping = dict()
+        for k, v in vouter.items():
+            mapping[k] = uniq_targets[np.argmax(list(v.values()))]
+            
+        return mapping
+    
+    def spectral_clustering(self, use_weight=False, random_state=42):
+        y_pred_classes = []
+        y_pred_cluster = []
+        y_true = []
+        
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Spektral clustering'):
+            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
+            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+            # print(nx.number_connected_components(G_test)) ########################## check it for all datasets
+            for c in nx.connected_components(G_test_init):
+                if self.data.test_nodes[i] in c:
+                    G_test = G_test_init.subgraph(c).copy()
+            if len(G_test.nodes) == 1:
+                print('Isolated test node found, skipping!')
+                continue
+            else:
+                L = nx.to_numpy_array(G_test)
+                # L = nx.normalized_laplacian_matrix(G_test, weight='ibd_sum' if use_weight else None) # node order like in G.nodes
+                clustering = SpectralClustering(n_clusters=int(len(self.data.classes)), assign_labels='discretize', random_state=random_state, affinity='precomputed', n_init=100).fit(L)
+                preds = clustering.labels_
+
+                ground_truth = []
+                nodes_ibd_sum = nx.get_node_attributes(G_test, name='class')
+                # print(len(G_test.nodes))
+                # print(nodes_ibd_sum)
+                for node in G_test.nodes:
+                    ground_truth.append(nodes_ibd_sum[node])
+
+                graph_test_node_list = list(G_test.nodes)
+                y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
+                y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
+
+                cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
+                y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
+                
+        print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
+        score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {score}")
+        
+        return score
+                
+            
+        
     def sklearn_label_propagation():
-        print('Better for 15-dim vectors')
+        print('Better for graph-based features')
         pass
             
         
