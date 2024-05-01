@@ -2,6 +2,7 @@ import os
 import time
 import torch
 import pickle
+import itertools
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -570,6 +571,20 @@ class DataProcessor:
                     num_nodes_class_2 = len(df_new.iloc[:, 1][df_new.iloc[:, 1] == j].to_numpy())
                     all_possible_connections = num_nodes_class_1 * num_nodes_class_2
                 self.edge_probs[i, j] = real_connections / all_possible_connections
+                
+    def plot_simulated_probs(self, save_path=None):
+        fig, ax = plt.subplots()
+        sns.heatmap(self.edge_probs, xticklabels=self.classes, yticklabels=self.classes, annot=True, fmt='.3f', cmap=sns.color_palette("ch:start=.1,rot=-.8", as_cmap=True), ax=ax)
+        ax.set_title('Edge probabilities', fontweight='bold', loc='center')
+        for i, tick_label in enumerate(ax.axes.get_yticklabels()):
+            tick_label.set_color("#008668")
+            tick_label.set_fontsize("10")
+        for i, tick_label in enumerate(ax.axes.get_xticklabels()):
+            tick_label.set_color("#008668")
+            tick_label.set_fontsize("10")
+        if save_path is not None:
+            plt.savefig(save_path)
+        plt.show()
 
     
 
@@ -932,11 +947,11 @@ class BaselineMethods:
                 preds = clustering.labels_
 
                 ground_truth = []
-                nodes_ibd_sum = nx.get_node_attributes(G_test, name='class')
+                nodes_classes = nx.get_node_attributes(G_test, name='class')
                 # print(len(G_test.nodes))
                 # print(nodes_ibd_sum)
                 for node in G_test.nodes:
-                    ground_truth.append(nodes_ibd_sum[node])
+                    ground_truth.append(nodes_classes[node])
 
                 graph_test_node_list = list(G_test.nodes)
                 y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
@@ -957,7 +972,7 @@ class BaselineMethods:
         for k in simrank.keys():
             simrank_matrix.append(list(simrank[k].values()))
 
-        return np.round(1 - np.array(simrank_matrix), 6)
+        return np.round(1 - np.array(simrank_matrix), 6) # check order of nodes
     
     def plot_dendogram(self, test_node, fig_size, leaf_font_size, save_path=None):
         current_nodes = self.data.train_nodes + [test_node]
@@ -993,11 +1008,11 @@ class BaselineMethods:
                 preds = AgglomerativeClustering(n_clusters=int(len(self.data.classes)), linkage='complete', compute_full_tree=True, metric='precomputed').fit_predict(distance)
 
                 ground_truth = []
-                nodes_ibd_sum = nx.get_node_attributes(G_test, name='class')
+                nodes_classes = nx.get_node_attributes(G_test, name='class')
                 # print(len(G_test.nodes))
                 # print(nodes_ibd_sum)
                 for node in G_test.nodes:
-                    ground_truth.append(nodes_ibd_sum[node])
+                    ground_truth.append(nodes_classes[node])
 
                 graph_test_node_list = list(G_test.nodes)
                 y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
@@ -1011,7 +1026,61 @@ class BaselineMethods:
         print(f"f1 macro score on test dataset: {score}")
         
         return score
-            
+    
+    
+    def girvan_newman(self):
+        y_pred_classes = []
+        y_pred_cluster = []
+        y_true = []
+        
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Girvan-Newman'):
+            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
+            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+            for c in nx.connected_components(G_test_init):
+                if self.data.test_nodes[i] in c:
+                    G_test = G_test_init.subgraph(c).copy()
+            if len(G_test.nodes) == 1:
+                print('Isolated test node found, skipping!')
+                continue
+            else:
+                comp = nx.community.girvan_newman(G_test.copy())
+                for communities in itertools.islice(comp, int(len(self.data.classes))):
+                    preds_nodes_per_cluster = communities
+                
+                preds_nodes_per_cluster = [list(c) for c in preds_nodes_per_cluster]
+                    
+                preds = []
+                for j in range(len(preds_nodes_per_cluster)):
+                    curr_cluster = preds_nodes_per_cluster[j]
+                    for cl in range(len(curr_cluster)):
+                        preds.append(j)
+                        
+                graph_test_node_list = np.array([x for xx in preds_nodes_per_cluster for x in xx])
+                sorting_arguments = np.argsort(graph_test_node_list)
+                graph_test_node_list = list(graph_test_node_list[sorting_arguments])
+                preds = np.array(preds)[sorting_arguments]
+                
+                # print(graph_test_node_list)
+                # print(preds)
+
+                ground_truth = []
+                nodes_classes = nx.get_node_attributes(G_test, name='class')
+
+                for node in graph_test_node_list:
+                    ground_truth.append(nodes_classes[node])
+
+                
+                y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
+                y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
+
+                cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
+                y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
+                
+        print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
+        score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {score}")
+        
+        return score
         
     def sklearn_label_propagation():
         print('Better for graph-based features')
