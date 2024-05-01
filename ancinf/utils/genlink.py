@@ -12,6 +12,8 @@ from sklearn import metrics
 from numba import njit, prange
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+from scipy.spatial.distance import squareform
+from scipy.cluster.hierarchy import dendrogram, linkage
 from sklearn.metrics import f1_score
 from sklearn.model_selection import KFold
 from torch.optim.lr_scheduler import StepLR
@@ -948,7 +950,32 @@ class BaselineMethods:
         print(f"f1 macro score on test dataset: {score}")
         
         return score
-                
+    
+    def simrank_distance(self, G):
+        simrank = nx.simrank_similarity(G)
+        simrank_matrix = []
+        for k in simrank.keys():
+            simrank_matrix.append(list(simrank[k].values()))
+
+        return np.round(1 - np.array(simrank_matrix), 6)
+    
+    def plot_dendogram(self, test_node, fig_size, leaf_font_size, save_path=None):
+        current_nodes = self.data.train_nodes + [test_node]
+        G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+        
+        distance = self.simrank_distance(G_test_init)
+        
+        plt.figure(figsize=fig_size)
+        linked = linkage(squareform(distance), 'complete')
+        dendrogram(linked, labels=list(G_test_init.nodes),
+                   leaf_font_size=leaf_font_size)
+        # plt.plot([0, len(G_test_init.nodes)+1], [0.89, 0.89], linestyle='--', c='tab:red')
+        if save_path is not None:
+            plt.savefig(save_path)
+        plt.show()
+    
+    def agglomerative_clustering(self):
+        pass
             
         
     def sklearn_label_propagation():
