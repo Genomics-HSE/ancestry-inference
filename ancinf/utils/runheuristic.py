@@ -64,9 +64,9 @@ def collectmacrosforrandompartitions(grph, labels, labeldict, pairs, trns, ncls,
         'IbdSumPerEdge': [], 
         'IbdSum': [], 
         'LongestIbd': [], 
-        'SegmentCountWMult': [], 
-        'SegmentCountPerClassize': [], 
-        'SegmentCount': []}
+        'SegmentCount': [], 
+        'EdgeCountPerClassize': [], 
+        'EdgeCount': []}
 
     for itr in range(itercount):        
         permt = bh.getrandompermutation(ncls, rng)
@@ -88,9 +88,9 @@ def collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls,
         'IbdSumPerEdge': [], 
         'IbdSum': [], 
         'LongestIbd': [], 
-        'SegmentCountWMult': [], 
-        'SegmentCountPerClassize': [], 
-        'SegmentCount': []}
+        'SegmentCount': [], 
+        'EdgeCountPerClassize': [], 
+        'EdgeCount': []}
     
     for idx, partition in enumerate(partitions):
         if conseq:

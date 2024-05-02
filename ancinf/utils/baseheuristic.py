@@ -344,11 +344,11 @@ def getfeatures(G, testnodes, nodeclasses, labeldict,  pairs, translation ):
     labelcount = len(labeldict)
 
     result = {}
-    result.update({"SegmentCount": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
+    result.update({"EdgeCount": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
                                    "comment":"number of edges from node to population"} })
-    result.update({"SegmentCountPerClassize": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
+    result.update({"EdgeCountPerClassize": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
                                               "comment":"number of edges from node to population per population size"} })
-    result.update({"SegmentCountWMult": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
+    result.update({"SegmentCount": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
                                         "comment":"number of shared ibd segments between node and population"} })
     result.update({"LongestIbd": {"data": np.zeros(nodecount*labelcount, dtype = np.float32).reshape((nodecount, labelcount)),
                                  "comment":"longest shared ibd segment between node and population"} })
@@ -394,9 +394,9 @@ def getfeatures(G, testnodes, nodeclasses, labeldict,  pairs, translation ):
                 edgecount = -1
 
 
-        result["SegmentCount"]["data"][nd] = node_edges_to_classes
-        result["SegmentCountPerClassize"]["data"][nd] = node_edges_to_classes_per_classize
-        result["SegmentCountWMult"]["data"][nd] = node_edges_to_classes_wmult
+        result["EdgeCount"]["data"][nd] = node_edges_to_classes
+        result["EdgeCountPerClassize"]["data"][nd] = node_edges_to_classes_per_classize
+        result["SegmentCount"]["data"][nd] = node_edges_to_classes_wmult
         result["LongestIbd"]["data"][nd] = node_longest_ibd
         result["IbdSum"]["data"][nd] = node_weights_to_classes
         result["IbdSumPerEdge"]["data"][nd] = node_weight_per_segment

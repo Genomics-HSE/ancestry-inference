@@ -31,16 +31,13 @@ NNs = {
     "MLP_3l_128h": MLP_3l_128h,
     "MLP_3l_512h": MLP_3l_512h,
     "MLP_9l_128h": MLP_9l_128h,
-    "MLP_9l_512h": MLP_9l_512h    
-#    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
-#    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
-#    "GINNet": GINNet,
-#    "AttnGCN": AttnGCN,
-#    "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
-#    "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3,
-    
-    
-    
+    "MLP_9l_512h": MLP_9l_512h,
+    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
+    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
+    "GINNet": GINNet,
+    "AttnGCN": AttnGCN,
+    "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
+    "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3,    
     
 }
 
@@ -489,8 +486,8 @@ def runandsaveall(workdir, infile, outfile, rng):
         json.dump(result, f, indent=4, sort_keys=True)            
 
 
-#TODO runname -> workdir
-def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, run_name, nnclass):
+
+def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, workdir, nnclass):
     '''
         returns f1 macro for one experiment
     '''
@@ -498,13 +495,15 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
 
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
 
-    dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', run_name, log_edge_weights=False)
-
-    #gnns
-    trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, run_name, 2, 20,
+    dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', workdir, log_edge_weights=False)
+    
+    if gnn:
+        #gnns
+        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, workdir, 2, 20,
                       'one_hot', 1, 1, cuda_device_specified=1)
-    #mlps
-    trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, run_name, 2, 20,
+    else:
+        #mlps
+        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, workdir, 2, 20,
                       'graph_based', 10, 1, cuda_device_specified=1)
 
     

@@ -80,55 +80,55 @@ def simulate(workdir, infile, outfile, seed):
     print(f"Finished! Total {time.time()-start:.2f}s")
     
     
-#STAGE3 HEURISTICS
-@cli.command()
-@click.argument("workdir")
-@click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
-@click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
-@click.option("--seed", default=2023, help="Random seed")
-def heuristics(workdir, infile, outfile, seed):
-    """Run heuristics"""
-    rng = np.random.default_rng(seed)
-    if outfile is None:
-        #try to remove .ancinf from infile
-        position = infile.find('.explist')
-        if position>0:
-            outfile = infile[:position]+'.result'
-        else:
-            outfile = infile+'.result'
-    start = time.time()
-    runheuristic.runandsaveheuristics(workdir, infile, outfile, rng)
-    print(f"Finished! Total {time.time()-start:.2f}s")
+# #STAGE3 HEURISTICS
+# @cli.command()
+# @click.argument("workdir")
+# @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
+# @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
+# @click.option("--seed", default=2023, help="Random seed")
+# def heuristics(workdir, infile, outfile, seed):
+#     """Run heuristics"""
+#     rng = np.random.default_rng(seed)
+#     if outfile is None:
+#         #try to remove .ancinf from infile
+#         position = infile.find('.explist')
+#         if position>0:
+#             outfile = infile[:position]+'.result'
+#         else:
+#             outfile = infile+'.result'
+#     start = time.time()
+#     runheuristic.runandsaveheuristics(workdir, infile, outfile, rng)
+#     print(f"Finished! Total {time.time()-start:.2f}s")
     
-#STAGE4 GNN    
-@cli.command()
-@click.argument("workdir")
-@click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
-@click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
-@click.option("--seed", default=2023, help="Random seed")
-def gnn(workdir, infile, outfile, seed):
-    """Run gnns"""     
-    rng = np.random.default_rng(seed)  
-    if outfile is None:
-        #try to remove .ancinf from infile
-        position = infile.find('.explist')
-        if position>0:
-            outfile = infile[:position]+'.result'
-        else:
-            outfile = infile+'.result'
-    start = time.time()
-    sim.runandsavegnn(workdir, infile, outfile, rng)
-    print(f"Finished! Total {time.time()-start:.2f}s.")
+# #STAGE4 GNN    
+# @cli.command()
+# @click.argument("workdir")
+# @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
+# @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
+# @click.option("--seed", default=2023, help="Random seed")
+# def gnn(workdir, infile, outfile, seed):
+#     """Run gnns"""     
+#     rng = np.random.default_rng(seed)  
+#     if outfile is None:
+#         #try to remove .ancinf from infile
+#         position = infile.find('.explist')
+#         if position>0:
+#             outfile = infile[:position]+'.result'
+#         else:
+#             outfile = infile+'.result'
+#     start = time.time()
+#     sim.runandsavegnn(workdir, infile, outfile, rng)
+#     print(f"Finished! Total {time.time()-start:.2f}s.")
 
     
-#STAGE5 HEURISTICS AND GNNS
+#STAGE5 TEST HEURISTICS, COMMUNITY DETECTIONS AND TRAIN&TEST NNs
 @cli.command()
 @click.argument("workdir")
 @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
 @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
 @click.option("--seed", default=2023, help="Random seed")
-def runall(workdir, infile, outfile, seed):
-    """Run heuristics, gnns and fc networks"""     
+def run(workdir, infile, outfile, seed):
+    """Run heuristics, community detections, gnns and fc networks"""     
     rng = np.random.default_rng(seed)  
     if outfile is None:
         #try to remove .ancinf from infile
