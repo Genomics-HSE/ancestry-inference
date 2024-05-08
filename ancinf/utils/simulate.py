@@ -12,6 +12,7 @@ from .genlink import simulate_graph_fn, generate_matrices_fn, independent_test
 from .baseheuristic import getprobandmeanmatrices, composegraphs, checkpartition, combinationgenerator
 from .baseheuristic import getrandompermutation, dividetrainvaltest, gettrainvaltestnodes
 from .runheuristic import translateconseqtodf, runheuristics
+from .runheuristic import run as runheur
 from .ibdloader import load_pure, translate_indices
 
 
@@ -234,13 +235,14 @@ def simulateandsave(workdir, infile, outfile, rng):
         datasetparams = datasets[datasetname]
             
         for expnum, experiment in enumerate(expgen):
-            datafilename = os.path.join(workdir, projname+'_'+datasetname+'_exp'+str(expnum)+'.csv' )
-            partfilename = os.path.join(workdir, projname+'_'+datasetname+'_exp'+str(expnum)+'.split' )
+            datafilename =  projname+'_'+datasetname+'_exp'+str(expnum)+'.csv' 
+            partfilename =  projname+'_'+datasetname+'_exp'+str(expnum)+'.split' 
             
             updateddatasetparams = updateparams(datasetparams, experiment)
             simulateandsaveonedataset(updateddatasetparams, offset, datafilename, rng)
             
-            savepartitions(datafilename, trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], partfilename, rng)
+            savepartitions(os.path.join(workdir, datafilename), trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], 
+                           os.path.join(workdir, partfilename), rng)
             
             expdict = { "id":expnum,
                        "experiment":experiment,
@@ -345,19 +347,22 @@ def preprocess(datadir, workdir, infile, outfile, rng):
         datasetparams = datasets[datasetname]
                 
         indatafilename = os.path.join(datadir, datasetname+'.csv' )
-        outdatafilename = os.path.join(workdir, projname+'_'+datasetname+'.csv' )
-        partfilename = os.path.join(workdir, projname+'_'+datasetname+'.split' )
+        outdatafilename =  projname+'_'+datasetname+'.csv' 
+        partfilename =  projname+'_'+datasetname+'.split' 
         
         cleanshare = None
         cleandatafilename = ""
+        cleandatafilepathname = ""
         if "cleanshare" in trainparams:
             cleanshare = trainparams["cleanshare"]
-            cleandatafilename = os.path.join(workdir, projname+'_'+datasetname+'_clean.csv' )
+            cleandatafilename =  projname+'_'+datasetname+'_clean.csv' 
+            cleandatafilepathname = os.path.join(workdir, cleandatafilename)
             
         
-        retval = filterandsaveonedataset(indatafilename, outdatafilename, datasetparams["filters"], cleanshare, cleandatafilename, rng)
+        retval = filterandsaveonedataset(indatafilename, os.path.join(workdir, outdatafilename), datasetparams["filters"], cleanshare, cleandatafilepathname, rng)
 
-        savepartitions(outdatafilename, trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], partfilename, rng)
+        savepartitions(os.path.join(workdir, outdatafilename), trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"],
+                       os.path.join(workdir, partfilename), rng)
 
         expdict = {
                    "datafile":outdatafilename,
@@ -378,13 +383,88 @@ def preprocess(datadir, workdir, infile, outfile, rng):
             
 
 def rungnn(workdir, infile, rng):
+    
+    return result            
+            
+    
+def getexplistinfo(explist):
+    datasetcount = len(explist)
+    for dsname in explist:
+        ds = explist[dsname]
+        expcount = len(ds)
+        splitcount = ds[0]["training"]["partition_count"]
+        mlpcount = len(ds[0]["training"]["mlps"])
+        gnncount = len(ds[0]["training"]["gnns"])
+        heucount = len(ds[0]["training"]["heuristics"])
+        comdetcount = len(ds[0]["training"]["community_detection"])
+        break
+       
+    totalruncount = datasetcount * expcount * splitcount
+    print (f"Total runs: {totalruncount} = {datasetcount} datasets x {expcount} parameter values x {splitcount} splits")
+    print (f"Every run: {heucount} heuristics, {comdetcount} community detection algorithms, {mlpcount} fully connected NNs, {gnncount} graph NNs")
+    
+    return totalruncount
+
+
+def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights):
+    train_list = []
+    val_list = []
+    test_list = []
+    for popl in partition["train"]:
+        train_list = train_list + partition["train"][popl]   
+        val_list = val_list + partition["val"][popl]   
+        test_list = test_list + partition["test"][popl]   
+
+    train_split = np.array(train_list)
+    valid_split = np.array(val_list)
+    test_split = np.array(test_list)
+
+    
+    gpuidx = runidx // 2
+    for gnnclass in gnnlist:
+        run_name = runbasename + "_"+gnnclass
+        print("NEW RUN:", run_name)
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx )
+        print("RUN COMPLETE!", gnnclass, runresult)
+        expresults[gnnclass].append(runresult)
+
+    for mlpclass in mlplist:
+        run_name = runbasename +"_"+mlpclass
+        print("NEW RUN:", run_name)
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[mlpclass], gnn=False, logweights=log_weights, gpu=gpuidx )
+        print("RUN COMPLETE!", mlpclass, runresult)
+        expresults[mlpclass].append(runresult)
+
+    for comdet in comdetlist:
+        expresults[comdet].append(303)
+
+
+def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name):
+    for nnclass in gnnlist:
+        run_name = os.path.join(run_base_name + "_"+nnclass, "model_best.bin" )
+        inferredlabels = []
+        for node in cleannodes:
+            print("infering class for node", node)
+            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node )
+            print("clean test classification", testresult)
+            inferredlabels.append( testresult )
+        runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
+        cleanexpresults[nnclass].append(runresult)
+
+
+
+def runandsaveall(workdir, infile, outfile, rng):
+    #loop through dataset
+    #  loop through experiments (different
+    #    loop though splits
+    #      loop through classifiers
+    #        train test update results resave with new data    
     with open(os.path.join(workdir, infile),"r") as f:
-        explist = json.load(f)
+        explist = json.load(f)    
+    totalruncount = getexplistinfo(explist)
+    runidx = 1
     
     result = {}
-    #todo: unique runname for every run
-    #todo: multiple NNs
-    
     for dataset in explist:
         print("Running experiments for", dataset)
         datasetexplist = explist[dataset]
@@ -395,117 +475,90 @@ def rungnn(workdir, infile, rng):
             
             with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
                 partitions = json.load(f)
-            expresults = {nnclass:[] for nnclass in NNs} 
-            for part_idx, partition in enumerate(partitions["partitions"]):
-
-                train_list = []
-                val_list = []
-                test_list = []
-                for popl in partition["train"]:
-                    train_list = train_list + partition["train"][popl]   
-                    val_list = val_list + partition["val"][popl]   
-                    test_list = test_list + partition["test"][popl]   
-         
-                train_split = np.array(train_list)
-                valid_split = np.array(val_list)
-                test_split = np.array(test_list)
-                for nnclass in NNs:
-                    run_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass)
-                    runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[nnclass]) 
-                    print("RUN COMPLETE!", nnclass, runresult)
-                    expresults[nnclass].append(runresult)
             
-            print("experiment results for different splits:", expresults)
-            datasetresults.append({nnclass: {"mean": np.average(expresults[nnclass]), 
-                                             "std": np.std(expresults[nnclass]), 
-                                             "values":expresults[nnclass]} for nnclass in NNs})
-            #now clean test if requested
+            log_weights = exp["training"]["log_weights"] 
+            heurlist = exp["training"]["heuristics"] 
+            comdetlist = exp["training"]["community_detection"]
+            mlplist = exp["training"]["mlps"]
+            gnnlist = exp["training"]["gnns"]            
+            fullist = heurlist + comdetlist + mlplist + gnnlist
+            
+            expresults = {nnclass:[] for nnclass in fullist} 
+            datasetresults.append({nnclass: {"mean": -1, 
+                                             "std": -1, 
+                                             "values":[]} for nnclass in fullist})
+            
+    
+        
+            #1. all heuristics for all partitions at once
+            heuresult = runheur(rng, datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None)
+            #save only selected by user
+            for heurclass in heurlist: 
+                expresults[heurclass] = heuresult[heurclass]["values"]
+            #2. GNNs and MLPs partition by partition
+            #if clean test is requiered we prepare dataframes with just one unlabelled node
             if "cleanfile" in exp:
-                print("Running clean inference test")
                 #prepare dataframes once for all neuronetworks
                 #compose df from dfmain and edges to node from dfclean
                 cleanfile = os.path.join(workdir, exp["cleanfile"])
                 dfmain = pd.read_csv(datafile)
                 dfclean = pd.read_csv(cleanfile)
-                    
-                
                 cleantestdataframes = {}
-                cleannodes = exp["cleannodes"]
-                #cleannodestxt = ["node_"+str(nd) for nd in cleannodes]
+                cleannodes = exp["cleannodes"]            
                 cleannodelabels = exp["cleannodelabels"]
                 for node in cleannodes:
-                    fltr1 = dfclean[dfclean["node_id1"] =="node_" +str(node)]
-                    #fltr1 = fltr1[not (fltr1["node_id2"] in cleannodestxt)]
-                    fltr2 = dfclean[dfclean["node_id2"] =="node_" +str(node)]                    
-                    #fltr2 = fltr2[not (fltr2["node_id1"] in cleannodestxt)]
-                    onenodedf = pd.concat([dfmain, fltr1, fltr2])
-                    #onenodedf.reset_index(drop=True)
+                    fltr1 = dfclean[dfclean["node_id1"] =="node_" +str(node)]                    
+                    fltr2 = dfclean[dfclean["node_id2"] =="node_" +str(node)]                                        
+                    onenodedf = pd.concat([dfmain, fltr1, fltr2])                    
                     cleantestdataframes[node] = onenodedf.reset_index(drop=True)
+                cleanexpresults = {nnclass:[] for nnclass in gnnlist} 
+
+            
+            for part_idx, partition in enumerate(partitions["partitions"]):
+                print(f"=========== Run {runidx} of {totalruncount} ======================")
+                run_base_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
+                processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights)
+                datasetresults[-1] = {nnclass: {"mean": np.average(expresults[nnclass]), 
+                                 "std": np.std(expresults[nnclass]), 
+                                 "values":expresults[nnclass]} for nnclass in fullist}
+                result[dataset] = datasetresults
+                with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=4, sort_keys=True)  
                 
-                ##               
-                expresults = {nnclass:[] for nnclass in NNs}
-                for part_idx, partition in enumerate(partitions["partitions"]):                    
-                    for nnclass in NNs:
-                        run_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx)+"_"+nnclass, "model_best.bin" )
-                        inferredlabels = []
-                        for node in cleannodes:
-                            print("infering class for node", node)
-                            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node )
-                            print("clean test classification", testresult)
-                            inferredlabels.append( testresult )
+                runidx+=1
+                #now clean test if requested
+                if "cleanfile" in exp:
+                    print("Running clean inference test")                
+                    runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name)                    
+                    for nnclass in cleanexpresults:
+                        datasetresults[-1][nnclass].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
+                                             "clean_std": np.std(cleanexpresults[nnclass]), 
+                                             "clean_values":cleanexpresults[nnclass]} )                        
+                    result[dataset] = datasetresults
+                    with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
+                        json.dump(result, f, indent=4, sort_keys=True)
 
-                        runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
-                        expresults[nnclass].append(runresult)
+                        
+
+
                 
-                for nnclass in NNs:
-                    datasetresults[exp_idx][nnclass].update({"clean_mean": np.average(expresults[nnclass]), 
-                                             "clean_std": np.std(expresults[nnclass]), 
-                                             "clean_values":expresults[nnclass]} )
-            
-        result[dataset] = datasetresults
-    return result            
-            
-            
-def runandsavegnn(workdir, infile, outfile, rng):
-    result = rungnn(workdir, infile, rng)
-    with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
-        json.dump(result, f, indent=4, sort_keys=True)            
-            
 
-            
-def runandsaveall(workdir, infile, outfile, rng):
-    result = rungnn(workdir, infile, rng)
-    result2 = runheuristics(workdir, infile, rng)
-    for dataset in result:        
-        exps = result[dataset]
-        exps2 = result2[dataset]
-        
-        for idx in range(len(exps)):
-            exps[idx].update(exps2[idx])
-    with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
-        json.dump(result, f, indent=4, sort_keys=True)            
-
-
-
-def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, workdir, nnclass):
+def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, rundir, nnclass, gnn=True, logweights=False, gpu=0):
     '''
         returns f1 macro for one experiment
     '''
     dp = DataProcessor(dataframe_path)
-
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
-
-    dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', workdir, log_edge_weights=False)
     
-    if gnn:
-        #gnns
-        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, workdir, 2, 20,
-                      'one_hot', 1, 1, cuda_device_specified=1)
+    if gnn:        
+        dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights)    
+        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
+                      'one_hot', 1, 1, cuda_device_specified=gpu)
     else:
         #mlps
-        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, workdir, 2, 20,
-                      'graph_based', 10, 1, cuda_device_specified=1)
-
+        dp.make_train_valid_test_datasets_with_numba('graph_based', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights)    
+        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
+                      'graph_based', 10, 1, cuda_device_specified=gpu)
     
     return trainer.run()           
 
