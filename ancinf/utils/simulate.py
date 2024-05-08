@@ -239,7 +239,7 @@ def simulateandsave(workdir, infile, outfile, rng):
             partfilename =  projname+'_'+datasetname+'_exp'+str(expnum)+'.split' 
             
             updateddatasetparams = updateparams(datasetparams, experiment)
-            simulateandsaveonedataset(updateddatasetparams, offset, datafilename, rng)
+            simulateandsaveonedataset(updateddatasetparams, offset, os.path.join(workdir, datafilename), rng)
             
             savepartitions(os.path.join(workdir, datafilename), trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], 
                            os.path.join(workdir, partfilename), rng)
