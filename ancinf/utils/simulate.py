@@ -383,10 +383,6 @@ def preprocess(datadir, workdir, infile, outfile, rng):
         json.dump(expfiledict, f, indent=4, sort_keys=True)
             
 
-def rungnn(workdir, infile, rng):
-    
-    return result            
-            
     
 def getexplistinfo(explist):
     datasetcount = len(explist)
@@ -404,10 +400,10 @@ def getexplistinfo(explist):
     print (f"Total runs: {totalruncount} = {datasetcount} datasets x {expcount} parameter values x {splitcount} splits")
     print (f"Every run: {heucount} heuristics, {comdetcount} community detection algorithms, {mlpcount} fully connected NNs, {gnncount} graph NNs")
     
-    return totalruncount
+    return totalruncount, expcount
 
 
-def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights):
+def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights, gpuidx):
     train_list = []
     val_list = []
     test_list = []
@@ -420,8 +416,6 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
     valid_split = np.array(val_list)
     test_split = np.array(test_list)
 
-    
-    gpuidx = runidx // 2
     for gnnclass in gnnlist:
         run_name = runbasename + "_"+gnnclass
         print("NEW RUN:", run_name)
@@ -440,13 +434,13 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         expresults[comdet].append(303)
 
 
-def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name):
+def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu):
     for nnclass in gnnlist:
         run_name = os.path.join(run_base_name + "_"+nnclass, "model_best.bin" )
         inferredlabels = []
         for node in cleannodes:
             print("infering class for node", node)
-            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node )
+            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node ) #Todo add gpu
             print("clean test classification", testresult)
             inferredlabels.append( testresult )
         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
@@ -454,7 +448,7 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
 
 
 
-def runandsaveall(workdir, infile, outfile, rng):
+def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
     #loop through dataset
     #  loop through experiments (different
     #    loop though splits
@@ -462,7 +456,13 @@ def runandsaveall(workdir, infile, outfile, rng):
     #        train test update results resave with new data    
     with open(os.path.join(workdir, infile),"r") as f:
         explist = json.load(f)    
-    totalruncount = getexplistinfo(explist)
+    totalruncount, expcount = getexplistinfo(explist)
+    if fromexp is None:
+        fromexp = 0
+    if toexp is None:
+        toexp = expcount
+    print(f"We will process experiments from {fromexp} to {toexp} on gpu {gpu}")
+    
     runidx = 1
     
     result = {}
@@ -470,7 +470,8 @@ def runandsaveall(workdir, infile, outfile, rng):
         print("Running experiments for", dataset)
         datasetexplist = explist[dataset]
         datasetresults = []
-        for exp_idx, exp in enumerate(datasetexplist):
+        for exp_idx in range(fromexp, toexp):            
+            exp = datasetexplist[exp_idx]
             
             datafile = os.path.join(workdir, exp["datafile"])
             
@@ -518,7 +519,7 @@ def runandsaveall(workdir, infile, outfile, rng):
             for part_idx, partition in enumerate(partitions["partitions"]):
                 print(f"=========== Run {runidx} of {totalruncount} ======================")
                 run_base_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
-                processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights)
+                processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu)
                 datasetresults[-1] = {nnclass: {"mean": np.average(expresults[nnclass]), 
                                  "std": np.std(expresults[nnclass]), 
                                  "values":expresults[nnclass]} for nnclass in fullist}
@@ -530,7 +531,7 @@ def runandsaveall(workdir, infile, outfile, rng):
                 #now clean test if requested
                 if "cleanfile" in exp:
                     print("Running clean inference test")                
-                    runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name)                    
+                    runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu)  
                     for nnclass in cleanexpresults:
                         datasetresults[-1][nnclass].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
                                              "clean_std": np.std(cleanexpresults[nnclass]), 

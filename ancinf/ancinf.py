@@ -127,7 +127,10 @@ def simulate(workdir, infile, outfile, seed):
 @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
 @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
 @click.option("--seed", default=2023, help="Random seed")
-def crossval(workdir, infile, outfile, seed):
+@click.option("--fromexp", default=None, help="The first experiment to run")
+@click.option("--toexp", default=None, help="Last experiment to run")
+@click.option("--gpu", default=0, help="GPU")
+def crossval(workdir, infile, outfile, seed, fromexp, toexp, gpu):
     """Run crossvalidation for classifiers including heuristics, community detections, GNNs and MLP networks"""     
     rng = np.random.default_rng(seed)  
     if outfile is None:
@@ -138,7 +141,7 @@ def crossval(workdir, infile, outfile, seed):
         else:
             outfile = infile+'.result'
     start = time.time()            
-    sim.runandsaveall(workdir, infile, outfile, rng)
+    sim.runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu)
     print(f"Finished! Total {time.time()-start:.2f}s.")    
 
 #INFERENCE STAGES
