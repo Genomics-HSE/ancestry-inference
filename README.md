@@ -141,7 +141,7 @@ TODO
 3. "simulator" section:
  - "type": "exponential" the only underlying edge weight distribution is exponential
  - "offset": shift of the exponential probability density function
-4. "experiments" section contain lists of factors for different simulation parameters. Parameters from .params file are multiplied by every combination of the following factors, and each combination is considered to be "an experiment" in .explist flle.
+4. "experiments" section contains lists of factors for different simulation parameters. Parameters from .params file are multiplied by every combination of the following factors, and each combination is considered to be "an experiment" in .explist flle.
   - "population_scale": multiply every population size 
   - "intra_edge_probability_scale": multiply edge probability inside every population (diagonal elements of edge probability matrix)
   - "extra_edge_probability_scale": multiply edge probability between every pair of populations (out-of-diagonal elements of edge probability matrix)
