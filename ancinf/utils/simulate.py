@@ -138,7 +138,7 @@ def updateparams(datasetparams, experiment):
     resultparams = {}
     for k in datasetparams:
         resultparams[k] = datasetparams[k]
-    
+    print(experiment)
     new_mean_weight = np.array(datasetparams["mean_weight"])
     new_edge_probability = np.array(datasetparams["edge_probability"])
     
@@ -148,13 +148,12 @@ def updateparams(datasetparams, experiment):
     for idm in range(new_mean_weight.shape[0]):
         for idn in range(new_mean_weight.shape[0]):
             if idm == idn:
-                new_mean_weight[idm, idn] *= experiment["intra_weight_scale"]
-                new_edge_probability[idm, idn] *= experiment["intra_edge_probability_scale"]
+                new_mean_weight[idm, idn] *= experiment["diag_weight_scale"]
+                new_edge_probability[idm, idn] *= experiment["diag_edge_probability_scale"]
             else:
-                new_mean_weight[idm, idn] *= experiment["extra_weight_scale"]
-                new_edge_probability[idm, idn] *= experiment["extra_edge_probability_scale"]
-    #print(experiment["intra_edge_probability_scale"])
-    #print(new_edge_probability)
+                new_mean_weight[idm, idn] *= experiment["nondg_weight_scale"]
+                new_edge_probability[idm, idn] *= experiment["nondg_edge_probability_scale"]
+    
     probslist = []
     for elem in new_edge_probability:
         probslist.append(list(elem))
@@ -231,17 +230,19 @@ def simulateandsave(workdir, infile, outfile, rng):
     for datasetname in datasets:
         experimentlist = []
         #now iterate through experiments               
+        print(experiments)
         expgen = combinationgenerator(experiments)
         datasetparams = datasets[datasetname]
             
         for expnum, experiment in enumerate(expgen):
+            print(experiment)
             datafilename =  projname+'_'+datasetname+'_exp'+str(expnum)+'.csv' 
             partfilename =  projname+'_'+datasetname+'_exp'+str(expnum)+'.split' 
             
             updateddatasetparams = updateparams(datasetparams, experiment)
             simulateandsaveonedataset(updateddatasetparams, offset, os.path.join(workdir, datafilename), rng)
             
-            savepartitions(os.path.join(workdir, datafilename), trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"], 
+            savepartitions(os.path.join(workdir, datafilename), trainparams["valshare"], trainparams["testshare"], trainparams["split_count"], 
                            os.path.join(workdir, partfilename), rng)
             
             expdict = { "id":expnum,
@@ -361,7 +362,7 @@ def preprocess(datadir, workdir, infile, outfile, rng):
         
         retval = filterandsaveonedataset(indatafilename, os.path.join(workdir, outdatafilename), datasetparams["filters"], cleanshare, cleandatafilepathname, rng)
 
-        savepartitions(os.path.join(workdir, outdatafilename), trainparams["valshare"], trainparams["testshare"], trainparams["partition_count"],
+        savepartitions(os.path.join(workdir, outdatafilename), trainparams["valshare"], trainparams["testshare"], trainparams["split_count"],
                        os.path.join(workdir, partfilename), rng)
 
         expdict = {
@@ -392,7 +393,7 @@ def getexplistinfo(explist):
     for dsname in explist:
         ds = explist[dsname]
         expcount = len(ds)
-        splitcount = ds[0]["crossvalidation"]["partition_count"]
+        splitcount = ds[0]["crossvalidation"]["split_count"]
         mlpcount = len(ds[0]["crossvalidation"]["mlps"])
         gnncount = len(ds[0]["crossvalidation"]["gnns"])
         heucount = len(ds[0]["crossvalidation"]["heuristics"])

@@ -133,16 +133,16 @@ TODO
  - "offset": shift of the exponential probability density function
 3. "experiments" section required for stage 2 contains lists of factors for different simulation parameters. Parameters from .params file are multiplied by every combination of the following factors, and each combination is considered to be "an experiment" in .explist flle. If factors are not needed, keep the lists with one factor only: [1.0], meaning only one experiment per parameter set in .params file will be performed. In case of stage 1' there is also only one "experiment", that is, the filtered original dataset.
   - "population_scale": multiply every population size 
-  - "intra_edge_probability_scale": multiply edge probability inside every population (diagonal elements of edge probability matrix)
-  - "extra_edge_probability_scale": multiply edge probability between every pair of populations (out-of-diagonal elements of edge probability matrix)
-  - "intra_weight_scale": multiply average weight of edge inside every population (diagonal element of average weight matrix)
-  - "extra_weight_scale": multiply average weight of edge between every pair of populations (out-of-diagonal elements of average weight matrix)
+  - "diag_edge_probability_scale": multiply edge probability inside every population (diagonal elements of edge probability matrix)
+  - "nondg_edge_probability_scale": multiply edge probability between every pair of populations (out-of-diagonal elements of edge probability matrix)
+  - "diag_weight_scale": multiply average weight of edge inside every population (diagonal element of average weight matrix)
+  - "nondg_weight_scale": multiply average weight of edge between every pair of populations (out-of-diagonal elements of average weight matrix)
   - "all_edge_probability_scale":  multiply all elements of edge probability matrix
   - "all_weight_scale": multiply all elements of average weight matrix
 4. "crossvalidation" section required for stage 3:
  - "cleanshare": share of every population to be excluded from train-val-test loop completely. If cleanshare is specified, then special csv datafile (ending with "clean") containing these excluded nodes will be created in the work directory and for every trained network an inference will be performed by adding nodes from this file one by one, and finally f1 macro of this inference will be computed and stored in results with "clean" prefix.
  - "valshare" and "testshare": share of every population to include into validation and test datasets respectively. If "cleanshare" was specified, then these shares are taken from nodes that are left (non excluded).
- - "partition_count": number of random splits into train-val-test subsets for crossvalidation.
+ - "split_count": number of random splits into train-val-test subsets for crossvalidation.
  - "log_weights": False means that edge weights in the training graphs are taken as they are in the datafile, True sets logarithms of these weights.
  - "heuristics": list of heuristic classifiers to be used in cross-validation. Possible values: ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"]
  - "community_detection": list of community detection algorithms to be used in cross-validation. Possible values: ["Spectral", "Agglomerative", "Girvan-Newmann"].

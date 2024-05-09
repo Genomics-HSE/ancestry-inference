@@ -1,10 +1,10 @@
 {   
     "experiments":{        
         "population_scale": [1.0],
-        "intra_edge_probability_scale": [0.5,1.0,1.5],
-        "extra_edge_probability_scale": [1],
-        "intra_weight_scale": [1],
-        "extra_weight_scale": [1],
+        "diag_edge_probability_scale": [0.5,1.0,1.5],
+        "nondg_edge_probability_scale": [1],
+        "diag_weight_scale": [1],
+        "nondg_weight_scale": [1],
         "all_edge_probability_scale": [1],
         "all_weight_scale": [1]
     },
@@ -18,7 +18,7 @@
         "cleanshare": 0.1,
         "valshare": 0.2,
         "testshare": 0.2,
-        "partition_count": 3,
+        "split_count": 3,
         "log_weights": "False",
         "heuristics": ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"],
         "community_detection": ["Spectral", "Agglomerative", "Girvan-Newmann"],

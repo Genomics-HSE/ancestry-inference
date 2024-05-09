@@ -54,18 +54,18 @@
         "all_weight_scale": [
             1
         ],
-        "extra_edge_probability_scale": [
+        "nondg_edge_probability_scale": [
             1
         ],
-        "extra_weight_scale": [
+        "nondg_weight_scale": [
             1
         ],
-        "intra_edge_probability_scale": [
+        "diag_edge_probability_scale": [
             0.5,
             1.0,
             1.5
         ],
-        "intra_weight_scale": [
+        "diag_weight_scale": [
             1
         ],
         "population_scale": [
@@ -106,7 +106,7 @@
             "MLP_9l_128h",
             "MLP_9l_512h"
         ],
-        "partition_count": 3,
+        "split_count": 3,
         "testshare": 0.2,
         "valshare": 0.2
     }
