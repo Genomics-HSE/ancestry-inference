@@ -138,7 +138,7 @@ def updateparams(datasetparams, experiment):
     resultparams = {}
     for k in datasetparams:
         resultparams[k] = datasetparams[k]
-    print(experiment)
+    #print(experiment)
     new_mean_weight = np.array(datasetparams["mean_weight"])
     new_edge_probability = np.array(datasetparams["edge_probability"])
     
@@ -230,12 +230,12 @@ def simulateandsave(workdir, infile, outfile, rng):
     for datasetname in datasets:
         experimentlist = []
         #now iterate through experiments               
-        print(experiments)
+        #print(experiments)
         expgen = combinationgenerator(experiments)
         datasetparams = datasets[datasetname]
             
         for expnum, experiment in enumerate(expgen):
-            print(experiment)
+            #print(experiment)
             datafilename =  projname+'_'+datasetname+'_exp'+str(expnum)+'.csv' 
             partfilename =  projname+'_'+datasetname+'_exp'+str(expnum)+'.split' 
             
