@@ -2,6 +2,15 @@
 
 Supplementary code 
 
+The pipeline below can be used in following ways:
+1. IBD dataset + .ancinf file ---(stage1)---> .params file ---(stage2)---> simulated datasets + .explist file ---(stage3)---> .results file
+2. IBD dataset + .ancinf file ---(stage1')---> filtered dataset + .explist file ---(stage3)---> .results file
+3. Manually composed .params file ---(stage2)---> simulated datasets + .explist file ---(stage3)---> .results file
+
+After stages 1 or 1' the project work directory becomes independent of the data directory, as it now contains either filtered original datasets or computed parameters for further simulations.
+
+After stage 3 the best weights for selected neural networks are kept, so they can later be used for inference.
+
 # I. Preprocessing and simulation
 
 ## Stage 1. Collect dataset parameters (requires original datasets)
@@ -11,7 +20,7 @@ Output: file with simulation parameters and other neccessary data for simulation
 
 Command line:
 ```
-Usage: python -m ancinf getparams [OPTIONS] DATADIR WORKDIR
+Usage: python3 -m ancinf getparams [OPTIONS] DATADIR WORKDIR
 
   Collect parameters of csv files in the DATADIR listed in project file from
   WORKDIR
@@ -36,7 +45,7 @@ Output: filtered datasets, train-validate-test splits, file with a list of exper
 
 Command line:
 ```
-Usage: python -m ancinf preprocess [OPTIONS] DATADIR WORKDIR
+Usage: python3 -m ancinf preprocess [OPTIONS] DATADIR WORKDIR
 
   Filter datsets from DATADIR, generate train-val-test splits and experiment
   list file in WORKDIR
@@ -62,7 +71,7 @@ Output: simulated datasets, train-validate-test splits, file with a list of expe
 
 Command line:
 ```
-Usage: python -m ancinf simulate [OPTIONS] WORKDIR
+Usage: python3 -m ancinf simulate [OPTIONS] WORKDIR
 
   Generate ibd graphs, corresponding slpits and experiment list file for
   parameters in INFILE
@@ -87,13 +96,14 @@ simulateandsave(workdir, "smallproject.params", "smallproject.explist", rng)
 ## Stage 3. Compute metrics for basic heuristics: 
 Input: Original or simulated datasets, train-validate-test splits, file with a list of experiments
 
-Output: heuristic classification metrics
+Output: f1 macro srores for selected classifiers
 
 Command line:
 ```
-Usage: python -m ancinf heuristics [OPTIONS] WORKDIR
+Usage: python3 -m ancinf heuristics [OPTIONS] WORKDIR
 
-  Run heuristics
+  Run crossvalidation for classifiers including heuristics, community
+  detections, GNNs and MLP networks
 
 Options:
   --infile TEXT   File with experiment list, defaults to project.explist
@@ -104,40 +114,38 @@ Options:
 
 Python import: 
 ```
-from ancinf.utils.runheuristic import runheuristics
-runheuristics(workdir, 'project.explist', rng)
+from ancinf.utils.simulate import runandsaveall
+runandsaveall(workdir, 'project.explist', 'project.results', rng)
 ```
-
-
-## Stage 4 
-2. Train MLP network and compute its metrics: `python3 -m ancinf mlp dataset.csv dataset_splits.json`
-
-## Stage 5. Train selected graph neural networks and compute their metrics: 
-
-Input: Original or simulated datasets, train-validate-test splits, file with a list of experiments
-
-Output: GNN classification metrics
-
-Command line:
-```
-Usage: python -m ancinf gnn [OPTIONS] WORKDIR
-
-  Run heuristics
-
-Options:
-  --infile TEXT   File with experiment list, defaults to project.explist
-  --outfile TEXT  File with classification metrics, defaults to project 
-                  file with '.result' extension
-  --seed INTEGER  Random seed
-```
-
-Python import: 
-```
-from ancinf.utils.runheuristic import rungnn
-rungnn(workdir, 'project.explist', rng)
-```
-
-
-
 
 # III. Inference 
+
+TODO
+
+
+# Project file format
+
+.ancinf file has the following sections:
+
+1. "datasets" required for stages 1 and 1'. Keys correspond to csv file names (without .csv extension) in DATADIR, values contain filters to be applied to corresponding datasets.
+
+2. "training" section:
+ - "cleanshare": share of every population to be excluded from train-val-test loop completely. If cleanshare is specified, then special csv datafile (ending with "clean") containing these excluded nodes will be created in the work directory and for every trained network an inference will be performed by adding nodes from this file one by one, and finally f1 macro of this inference will be computed and stored in results with "clean" prefix.
+ - "valshare" and "testshare": share of every population to include into validation and test datasets respectively. If "cleanshare" was specified, then these shares are taken from nodes that are left (non excluded).
+ - "partition_count": number of random splits into train-val-test subsets for crossvalidation.
+ - "log_weights": False means that edge weights in the training graphs are taken as they are in the datafile, True sets logarithms of these weights.
+ - "heuristics": list of heuristic classifiers to be used in cross-validation. Possible values: ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"]
+ - "community_detection": list of community detection algorithms to be used in cross-validation. Possible values: ["Spectral", "Agglomerative", "Girvan-Newmann"].
+ - "mlps": list of multilayer perceptron architecture NN classifiers to be used in cross-validation. Possible values: ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"]
+ - "gnns": list of graph neural network classifiers to be used in cross-validation. Possible values: ["TAGConv_9l_512h_nw_k3", "TAGConv_9l_128h_k3", "GINNet", "AttnGCN", "TAGConv_3l_128h_w_k3", "TAGConv_3l_512h_w_k3"] 
+3. "simulator" section:
+ - "type": "exponential" the only underlying edge weight distribution is exponential
+ - "offset": shift of the exponential probability density function
+4. "experiments" section contain lists of factors for different simulation parameters. Parameters from .params file are multiplied by every combination of the following factors, and each combination is considered to be "an experiment" in .explist flle.
+  - "population_scale": multiply every population size 
+  - "intra_edge_probability_scale": multiply edge probability inside every population (diagonal elements of edge probability matrix)
+  - "extra_edge_probability_scale": multiply edge probability between every pair of populations (out-of-diagonal elements of edge probability matrix)
+  - "intra_weight_scale": multiply average weight of edge inside every population (diagonal element of average weight matrix)
+  - "extra_weight_scale": multiply average weight of edge between every pair of populations (out-of-diagonal elements of average weight matrix)
+  - "all_edge_probability_scale":  multiply all elements of edge probability matrix
+  - "all_weight_scale": multiply all elements of average weight matrix

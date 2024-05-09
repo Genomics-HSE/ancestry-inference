@@ -127,8 +127,8 @@ def simulate(workdir, infile, outfile, seed):
 @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
 @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
 @click.option("--seed", default=2023, help="Random seed")
-def run(workdir, infile, outfile, seed):
-    """Run heuristics, community detections, gnns and fc networks"""     
+def crossval(workdir, infile, outfile, seed):
+    """Run crossvalidation for classifiers including heuristics, community detections, GNNs and MLP networks"""     
     rng = np.random.default_rng(seed)  
     if outfile is None:
         #try to remove .ancinf from infile
