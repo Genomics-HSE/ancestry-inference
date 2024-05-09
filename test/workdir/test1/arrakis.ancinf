@@ -13,7 +13,7 @@
         "type": "exponential",
         "offset": 8.0    
     },
-    "training":
+    "crossvalidation":
     {
         "cleanshare": 0.1,
         "valshare": 0.2,

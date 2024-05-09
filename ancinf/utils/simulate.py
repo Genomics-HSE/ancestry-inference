@@ -96,7 +96,7 @@ def collectparams(datadir, workdir, infile):
         meta = json.load(f)
     
     paramdict = {"datasets": {}}
-    for k in ["experiments", "simulator", "training"]:
+    for k in ["experiments", "simulator", "crossvalidation"]:
         if k in meta:
             paramdict[k] = meta[k]
 
@@ -224,7 +224,7 @@ def simulateandsave(workdir, infile, outfile, rng):
     datasets = dct["datasets"]
     simparams = dct["simulator"]
     offset = simparams["offset"]
-    trainparams = dct["training"]
+    trainparams = dct["crossvalidation"]
     
     expfiledict = {}   
     #iterate through datasets
@@ -248,7 +248,7 @@ def simulateandsave(workdir, infile, outfile, rng):
                        "experiment":experiment,
                        "datasetparams":datasetparams,
                        "datafile":datafilename,
-                       "training": trainparams,
+                       "crossvalidation": trainparams,
                        "partitionfile":partfilename
             }
             experimentlist.append(expdict)            
@@ -337,7 +337,7 @@ def preprocess(datadir, workdir, infile, outfile, rng):
     with open(infilepath, 'r') as f:
         dct = json.load(f)          
     datasets = dct["datasets"]
-    trainparams = dct["training"]
+    trainparams = dct["crossvalidation"]
     
     expfiledict = {}   
     #iterate through datasets
@@ -366,7 +366,7 @@ def preprocess(datadir, workdir, infile, outfile, rng):
 
         expdict = {
                    "datafile":outdatafilename,
-                   "training": trainparams,
+                   "crossvalidation": trainparams,
                    "partitionfile":partfilename
         }
         if "cleanshare" in trainparams:
@@ -392,11 +392,11 @@ def getexplistinfo(explist):
     for dsname in explist:
         ds = explist[dsname]
         expcount = len(ds)
-        splitcount = ds[0]["training"]["partition_count"]
-        mlpcount = len(ds[0]["training"]["mlps"])
-        gnncount = len(ds[0]["training"]["gnns"])
-        heucount = len(ds[0]["training"]["heuristics"])
-        comdetcount = len(ds[0]["training"]["community_detection"])
+        splitcount = ds[0]["crossvalidation"]["partition_count"]
+        mlpcount = len(ds[0]["crossvalidation"]["mlps"])
+        gnncount = len(ds[0]["crossvalidation"]["gnns"])
+        heucount = len(ds[0]["crossvalidation"]["heuristics"])
+        comdetcount = len(ds[0]["crossvalidation"]["community_detection"])
         break
        
     totalruncount = datasetcount * expcount * splitcount
@@ -476,11 +476,11 @@ def runandsaveall(workdir, infile, outfile, rng):
             with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
                 partitions = json.load(f)
             
-            log_weights = exp["training"]["log_weights"] 
-            heurlist = exp["training"]["heuristics"] 
-            comdetlist = exp["training"]["community_detection"]
-            mlplist = exp["training"]["mlps"]
-            gnnlist = exp["training"]["gnns"]            
+            log_weights = exp["crossvalidation"]["log_weights"] 
+            heurlist = exp["crossvalidation"]["heuristics"] 
+            comdetlist = exp["crossvalidation"]["community_detection"]
+            mlplist = exp["crossvalidation"]["mlps"]
+            gnnlist = exp["crossvalidation"]["gnns"]            
             fullist = heurlist + comdetlist + mlplist + gnnlist
             
             expresults = {nnclass:[] for nnclass in fullist} 

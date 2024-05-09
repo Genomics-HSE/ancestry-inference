@@ -139,7 +139,7 @@ TODO
   - "extra_weight_scale": multiply average weight of edge between every pair of populations (out-of-diagonal elements of average weight matrix)
   - "all_edge_probability_scale":  multiply all elements of edge probability matrix
   - "all_weight_scale": multiply all elements of average weight matrix
-4. "training" section required for stage 3:
+4. "crossvalidation" section required for stage 3:
  - "cleanshare": share of every population to be excluded from train-val-test loop completely. If cleanshare is specified, then special csv datafile (ending with "clean") containing these excluded nodes will be created in the work directory and for every trained network an inference will be performed by adding nodes from this file one by one, and finally f1 macro of this inference will be computed and stored in results with "clean" prefix.
  - "valshare" and "testshare": share of every population to include into validation and test datasets respectively. If "cleanshare" was specified, then these shares are taken from nodes that are left (non excluded).
  - "partition_count": number of random splits into train-val-test subsets for crossvalidation.

@@ -76,7 +76,7 @@
         "offset": 8.0,
         "type": "exponential"
     },
-    "training": {
+    "crossvalidation": {
         "cleanshare": 0.1,
         "community_detection": [
             "Spectral",
