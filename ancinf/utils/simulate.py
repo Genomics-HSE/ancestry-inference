@@ -23,7 +23,7 @@ import sys
 from sklearn.metrics import f1_score
 
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
-from .genlink import DataProcessor, NullSimulator, Trainer,  TAGConv_3l_128h_w_k3, \
+from .genlink import DataProcessor, BaselineMethods, NullSimulator, Trainer,  TAGConv_3l_128h_w_k3, \
                   TAGConv_3l_512h_w_k3, GINNet, AttnGCN, TAGConv_9l_128h_k3,\
                   TAGConv_9l_512h_nw_k3, MLP_3l_128h, MLP_3l_512h, MLP_9l_128h,\
                   MLP_9l_512h
@@ -430,9 +430,25 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         print("RUN COMPLETE!", mlpclass, runresult)
         expresults[mlpclass].append(runresult)
 
-    for comdet in comdetlist:
-        expresults[comdet].append(303)
+    #TODO use prepared split, implement girvan-newmann
+    if comdetlist!=[]:
+        dp = DataProcessor(datafile)
+        dp.generate_random_train_valid_test_nodes(0.6, 0.2, 0.2, 42)
+        bm = BaselineMethods(dp)
+        for comdet in comdetlist:
+            if comdet == "Spectral":
+                score = bm.spectral_clustering()
+            if comdet == "Agglomerative":
+                score = bm.agglomerative_clustering()
+            if comdet == "Girvan-Newmann":
+                #bm.girvan_newman()
+                score = 404
+            print(comdet,":", score)
+            expresults[comdet].append(score)
 
+
+
+            
 
 def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu):
     for nnclass in gnnlist:
@@ -529,7 +545,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 
                 runidx+=1
                 #now clean test if requested
-                if "cleanfile" in exp:
+                if ("cleanfile" in exp) and (gnnlist != []):
                     print("Running clean inference test")                
                     runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu)  
                     for nnclass in cleanexpresults:
