@@ -473,10 +473,30 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
     with open(os.path.join(workdir, infile),"r") as f:
         explist = json.load(f)    
     totalruncount, expcount = getexplistinfo(explist)
+    
+    no_postfix = (fromexp is None) and (toexp is None)
     if fromexp is None:
         fromexp = 0
+    else:
+        fromexp = int(fromexp)
     if toexp is None:
         toexp = expcount
+    else:
+        toexp = int(toexp)
+    
+    if no_postfix:
+        outfile_postfix = ""
+    else:
+        outfile_postfix = "_" + str(fromexp) +"-"+ str(toexp)
+    
+    #try to remove .ancinf from infile
+    position = infile.find('.result')
+    if position>0:
+        outfile = outfile[:position]+outfile_posfix+'.result'
+    else:
+        outfile = outfile+outfile_postfix
+
+    
     print(f"We will process experiments from {fromexp} to {toexp} on gpu {gpu}")
     
     runidx = 1
