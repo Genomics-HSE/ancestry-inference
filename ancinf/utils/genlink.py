@@ -940,6 +940,9 @@ class BaselineMethods:
             if len(G_test.nodes) == 1:
                 print('Isolated test node found, skipping!')
                 continue
+            elif len(G_test) <= len(self.data.classes):
+                print('Too few nodes!!! Skipping!!!')
+                continue
             else:
                 L = nx.to_numpy_array(G_test)
                 # L = nx.normalized_laplacian_matrix(G_test, weight='ibd_sum' if use_weight else None) # node order like in G.nodes
@@ -1003,7 +1006,11 @@ class BaselineMethods:
             if len(G_test.nodes) == 1:
                 print('Isolated test node found, skipping!')
                 continue
+            elif len(G_test) <= len(self.data.classes):
+                print('Too few nodes!!! Skipping!!!')
+                continue
             else:
+                # print(len(G_test))
                 distance = self.simrank_distance(G_test)
                 preds = AgglomerativeClustering(n_clusters=int(len(self.data.classes)), linkage='complete', compute_full_tree=True, metric='precomputed').fit_predict(distance)
 
