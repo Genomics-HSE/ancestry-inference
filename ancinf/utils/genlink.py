@@ -1122,8 +1122,8 @@ class TAGConv_3l_512h_w_k3(torch.nn.Module):
 class MLP_3l_128h(torch.nn.Module):
     def __init__(self, data):
         super().__init__()
-        self.norm = BatchNorm1d(int(data.num_classes))
-        self.fc1 = Linear(int(data.num_classes), 128)
+        self.norm = BatchNorm1d(3 * int(data.num_classes))
+        self.fc1 = Linear(3 * int(data.num_classes), 128)
         self.fc2 = Linear(128, 128)
         self.fc3 = Linear(128, int(data.num_classes))
 
@@ -1140,8 +1140,8 @@ class MLP_3l_128h(torch.nn.Module):
 class MLP_3l_512h(torch.nn.Module):
     def __init__(self, data):
         super().__init__()
-        self.norm = BatchNorm1d(int(data.num_classes))
-        self.fc1 = Linear(int(data.num_classes), 512)
+        self.norm = BatchNorm1d(3 * int(data.num_classes))
+        self.fc1 = Linear(3 * int(data.num_classes), 512)
         self.fc2 = Linear(512, 512)
         self.fc3 = Linear(512, int(data.num_classes))
 
@@ -1158,8 +1158,8 @@ class MLP_3l_512h(torch.nn.Module):
 class MLP_9l_128h(torch.nn.Module):
     def __init__(self, data):
         super().__init__()
-        self.norm = BatchNorm1d(int(data.num_classes))
-        self.fc1 = Linear(int(data.num_classes), 128)
+        self.norm = BatchNorm1d(3 * int(data.num_classes))
+        self.fc1 = Linear(3 * int(data.num_classes), 128)
         self.fc2 = Linear(128, 128)
         self.fc3 = Linear(128, 128)
         self.fc4 = Linear(128, 128)
@@ -1194,8 +1194,8 @@ class MLP_9l_128h(torch.nn.Module):
 class MLP_9l_512h(torch.nn.Module):
     def __init__(self, data):
         super().__init__()
-        self.norm = BatchNorm1d(int(data.num_classes))
-        self.fc1 = Linear(int(data.num_classes), 512)
+        self.norm = BatchNorm1d(3 * int(data.num_classes))
+        self.fc1 = Linear(3 * int(data.num_classes), 512)
         self.fc2 = Linear(512, 512)
         self.fc3 = Linear(512, 512)
         self.fc4 = Linear(512, 512)
@@ -1620,8 +1620,9 @@ class SimpleNN(torch.nn.Module):
             Linear(hidden_dim, n_class),
         )
 
-    def forward(self, h, a, b):
-        h = self.model(h)
+    def forward(self, data):
+        x, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.model(x)
         return h
 
 
