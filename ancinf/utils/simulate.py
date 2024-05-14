@@ -131,6 +131,9 @@ def simulateandsaveonedataset(datasetparams, offset, fname, rng):
     edge_probs = np.array(datasetparams["edge_probability"])
     mean_weight = np.array(datasetparams["mean_weight"]) - offset #the next function wants corrected mean weights
     classes = datasetparams["pop_names"]
+    #print("Edge probs:",edge_probs)
+    #print("Mean weights:", mean_weight)
+    #print("Population sizes:", population_sizes)
     counts, means, pop_index = generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng) 
     simulate_graph_fn(classes, means, counts, pop_index, fname)
         
