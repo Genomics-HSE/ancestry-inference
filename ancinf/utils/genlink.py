@@ -930,7 +930,7 @@ class BaselineMethods:
         y_pred_cluster = []
         y_true = []
         
-        for i in tqdm(range(len(self.data.test_nodes)), desc='Spektral clustering'):
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Spectral clustering'):
             current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
             G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
             # print(nx.number_connected_components(G_test)) ########################## check it for all datasets
