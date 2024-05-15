@@ -141,10 +141,11 @@ TODO
   - "all_weight_scale": multiply all elements of average weight matrix
 4. "crossvalidation" section required for stage 3:
  - "cleanshare": share of every population to be excluded from train-val-test loop completely. If cleanshare is specified, then special csv datafile (ending with "clean") containing these excluded nodes will be created in the work directory and for every trained network an inference will be performed by adding nodes from this file one by one, and finally f1 macro of this inference will be computed and stored in results with "clean" prefix.
+ - "maskshare": share of every population to be marked "unknown"
  - "valshare" and "testshare": share of every population to include into validation and test datasets respectively. If "cleanshare" was specified, then these shares are taken from nodes that are left (non excluded).
  - "split_count": number of random splits into train-val-test subsets for crossvalidation.
  - "log_weights": False means that edge weights in the training graphs are taken as they are in the datafile, True sets logarithms of these weights.
  - "heuristics": list of heuristic classifiers to be used in cross-validation. Possible values: ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"]
- - "community_detection": list of community detection algorithms to be used in cross-validation. Possible values: ["Spectral", "Agglomerative", "Girvan-Newmann"].
+ - "community_detection": list of community detection algorithms to be used in cross-validation. Possible values: ["Spectral", "Agglomerative", "Girvan-Newmann", "LabelPropagation"].
  - "mlps": list of multilayer perceptron architecture NN classifiers to be used in cross-validation. Possible values: ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"]
  - "gnns": list of graph neural network classifiers to be used in cross-validation. Possible values: ["TAGConv_9l_512h_nw_k3", "TAGConv_9l_128h_k3", "GINNet", "AttnGCN", "TAGConv_3l_128h_w_k3", "TAGConv_3l_512h_w_k3"] 

@@ -131,6 +131,9 @@ def simulateandsaveonedataset(datasetparams, offset, fname, rng):
     edge_probs = np.array(datasetparams["edge_probability"])
     mean_weight = np.array(datasetparams["mean_weight"]) - offset #the next function wants corrected mean weights
     classes = datasetparams["pop_names"]
+    #print("Edge probs:",edge_probs)
+    #print("Mean weights:", mean_weight)
+    #print("Population sizes:", population_sizes)
     counts, means, pop_index = generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng) 
     simulate_graph_fn(classes, means, counts, pop_index, fname)
         
@@ -404,6 +407,8 @@ def getexplistinfo(explist):
 
 
 def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights, gpuidx):
+    #TODO maybe it will not hurt to create DataProcessor once for a split 
+    #(now they are created for every classifier from scratch)
     train_list = []
     val_list = []
     test_list = []
@@ -431,18 +436,27 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         expresults[mlpclass].append(runresult)
 
     #TODO use prepared split, implement girvan-newmann
-    if comdetlist!=[]:
-        dp = DataProcessor(datafile)
-        dp.generate_random_train_valid_test_nodes(0.6, 0.2, 0.2, 42)
-        bm = BaselineMethods(dp)
+    if comdetlist!=[]:        
         for comdet in comdetlist:
             if comdet == "Spectral":
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
+                bm = BaselineMethods(dp)
                 score = bm.spectral_clustering()
             if comdet == "Agglomerative":
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
+                bm = BaselineMethods(dp)
                 score = bm.agglomerative_clustering()
             if comdet == "Girvan-Newmann":
                 #bm.girvan_newman()
                 score = 404
+            if comdet == "LabelPropagation":
+                dplp = DataProcessor(datafile)
+                dplp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
+                dplp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'tmp')
+                bmlp  = BaselineMethods(dplp)
+                score = bmlp.torch_geometric_label_propagation(1, 0.0001)
             print(comdet,":", score)
             expresults[comdet].append(score)
 
@@ -559,6 +573,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 datasetresults[-1] = {nnclass: {"mean": np.average(expresults[nnclass]), 
                                  "std": np.std(expresults[nnclass]), 
                                  "values":expresults[nnclass]} for nnclass in fullist}
+                datasetresults[-1]["exp_idx"] = exp_idx
                 result[dataset] = datasetresults
                 with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
                     json.dump(result, f, indent=4, sort_keys=True)  
