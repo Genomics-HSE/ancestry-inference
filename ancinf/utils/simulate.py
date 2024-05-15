@@ -573,6 +573,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 datasetresults[-1] = {nnclass: {"mean": np.average(expresults[nnclass]), 
                                  "std": np.std(expresults[nnclass]), 
                                  "values":expresults[nnclass]} for nnclass in fullist}
+                datasetresults[-1]["exp_idx"] = exp_idx
                 result[dataset] = datasetresults
                 with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
                     json.dump(result, f, indent=4, sort_keys=True)  
