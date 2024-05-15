@@ -426,6 +426,8 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         print("NEW RUN:", run_name)
         runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx )
         print("RUN COMPLETE!", gnnclass, runresult)
+        #now runresult is a dict
+        #also include run times
         expresults[gnnclass].append(runresult)
 
     for mlpclass in mlplist:
@@ -505,13 +507,14 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
     else:
         outfile_postfix = "_" + str(fromexp) +"-"+ str(toexp)
     
-    #try to remove .ancinf from infile
-    position = infile.find('.result')
+    #try to remove .ancinf from outfile
+    position = outfile.find('.result')    
     if position>0:
-        outfile = outfile[:position]+outfile_posfix+'.result'
+        outfile = outfile[:position]+outfile_postfix + '.result'
+        runfolder = outfile[:position]+outfile_postfix  + "_runs"
     else:
         outfile = outfile+outfile_postfix
-
+        runfolder = outfile + "_runs"
     
     print(f"We will process experiments from [{fromexp} to {toexp}) on gpu {gpu}")
     
@@ -547,6 +550,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             #1. all heuristics for all partitions at once
             heuresult = runheur(rng, datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None)
             #save only selected by user
+            #TODO update to new format
             for heurclass in heurlist: 
                 expresults[heurclass] = heuresult[heurclass]["values"]
             #2. GNNs and MLPs partition by partition
@@ -570,7 +574,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             
             for part_idx, partition in enumerate(partitions["partitions"]):
                 print(f"=========== Run {runidx} of {totalruncount} ======================")
-                run_base_name = os.path.join(workdir, "runs", "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
+                run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
                 processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu)
                 datasetresults[-1] = {nnclass: {"mean": np.average(expresults[nnclass]), 
                                  "std": np.std(expresults[nnclass]), 

@@ -20,7 +20,7 @@
         "split_count": 3,
         "log_weights": "True",
         "heuristics": ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"],
-        "community_detection": ["Spectral", "Agglomerative", "Girvan-Newmann", "LabelPropagation"],
+        "community_detection": ["Spectral", "Agglomerative", "LabelPropagation"],
         "mlps": ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"],
         "gnns": ["TAGConv_9l_512h_nw_k3",
                     "TAGConv_9l_128h_k3",
