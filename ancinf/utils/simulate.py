@@ -449,8 +449,10 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
                 bm = BaselineMethods(dp)
                 score = bm.agglomerative_clustering()
             if comdet == "Girvan-Newmann":
-                #bm.girvan_newman()
-                score = 404
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
+                bm = BaselineMethods(dp)                
+                score = bm.girvan_newman()
             if comdet == "LabelPropagation":
                 dplp = DataProcessor(datafile)
                 dplp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
@@ -612,7 +614,7 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
         #print(f"Log weignts: {logweights}")
         #dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights)    
         dp.make_train_valid_test_datasets_with_numba('graph_based', 'homogeneous', 'one', 'multiple', rundir, log_edge_weights=logweights)    
-        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
+        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 100,
                       'graph_based', 10, 1, cuda_device_specified=gpu)
     
     return trainer.run()           
