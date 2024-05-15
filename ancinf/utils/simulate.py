@@ -407,6 +407,8 @@ def getexplistinfo(explist):
 
 
 def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights, gpuidx):
+    #TODO maybe it will not hurt to create DataProcessor once for a split 
+    #(now they are created for every classifier from scratch)
     train_list = []
     val_list = []
     test_list = []
@@ -434,18 +436,27 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         expresults[mlpclass].append(runresult)
 
     #TODO use prepared split, implement girvan-newmann
-    if comdetlist!=[]:
-        dp = DataProcessor(datafile)
-        dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
-        bm = BaselineMethods(dp)
+    if comdetlist!=[]:        
         for comdet in comdetlist:
             if comdet == "Spectral":
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
+                bm = BaselineMethods(dp)
                 score = bm.spectral_clustering()
             if comdet == "Agglomerative":
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
+                bm = BaselineMethods(dp)
                 score = bm.agglomerative_clustering()
             if comdet == "Girvan-Newmann":
                 #bm.girvan_newman()
                 score = 404
+            if comdet == "LabelPropagation":
+                dplp = DataProcessor(datafile)
+                dplp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
+                dplp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'tmp')
+                bmlp  = BaselineMethods(dplp)
+                score = bmlp.torch_geometric_label_propagation(1, 0.0001)
             print(comdet,":", score)
             expresults[comdet].append(score)
 

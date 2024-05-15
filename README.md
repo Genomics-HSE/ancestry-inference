@@ -145,6 +145,6 @@ TODO
  - "split_count": number of random splits into train-val-test subsets for crossvalidation.
  - "log_weights": False means that edge weights in the training graphs are taken as they are in the datafile, True sets logarithms of these weights.
  - "heuristics": list of heuristic classifiers to be used in cross-validation. Possible values: ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"]
- - "community_detection": list of community detection algorithms to be used in cross-validation. Possible values: ["Spectral", "Agglomerative", "Girvan-Newmann"].
+ - "community_detection": list of community detection algorithms to be used in cross-validation. Possible values: ["Spectral", "Agglomerative", "Girvan-Newmann", "LabelPropagation"].
  - "mlps": list of multilayer perceptron architecture NN classifiers to be used in cross-validation. Possible values: ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"]
  - "gnns": list of graph neural network classifiers to be used in cross-validation. Possible values: ["TAGConv_9l_512h_nw_k3", "TAGConv_9l_128h_k3", "GINNet", "AttnGCN", "TAGConv_3l_128h_w_k3", "TAGConv_3l_512h_w_k3"] 
