@@ -436,7 +436,7 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
     #TODO use prepared split, implement girvan-newmann
     if comdetlist!=[]:
         dp = DataProcessor(datafile)
-        dp.generate_random_train_valid_test_nodes(0.6, 0.2, 0.2, 42)
+        dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
         bm = BaselineMethods(dp)
         for comdet in comdetlist:
             if comdet == "Spectral":
