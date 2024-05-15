@@ -10,6 +10,7 @@ import seaborn as sns
 import networkx as nx
 import torch.nn as nn
 from sklearn import metrics
+from multiprocessing import Pool
 from numba import njit, prange
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
@@ -1034,54 +1035,64 @@ class BaselineMethods:
         
         return score
     
+    def girvan_newman_thread(self, test_node_idx):
+
+        current_nodes = self.data.train_nodes + [self.data.test_nodes[test_node_idx]]
+        G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+        for c in nx.connected_components(G_test_init):
+            if self.data.test_nodes[test_node_idx] in c:
+                G_test = G_test_init.subgraph(c).copy()
+        if len(G_test.nodes) == 1:
+            print('Isolated test node found, skipping!')
+        else:
+            comp = nx.community.girvan_newman(G_test.copy())
+            for communities in itertools.islice(comp, int(len(self.data.classes))):
+                preds_nodes_per_cluster = communities
+
+            preds_nodes_per_cluster = [list(c) for c in preds_nodes_per_cluster]
+
+            preds = []
+            for j in range(len(preds_nodes_per_cluster)):
+                curr_cluster = preds_nodes_per_cluster[j]
+                for cl in range(len(curr_cluster)):
+                    preds.append(j)
+
+            graph_test_node_list = np.array([x for xx in preds_nodes_per_cluster for x in xx])
+            sorting_arguments = np.argsort(graph_test_node_list)
+            graph_test_node_list = list(graph_test_node_list[sorting_arguments])
+            preds = np.array(preds)[sorting_arguments]
+
+            # print(graph_test_node_list)
+            # print(preds)
+
+            ground_truth = []
+            nodes_classes = nx.get_node_attributes(G_test, name='class')
+
+            for node in graph_test_node_list:
+                ground_truth.append(nodes_classes[node])
+
+
+            y_pred_cluster = preds[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]
+            y_true = ground_truth[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]
+
+            cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
+            y_pred_classes = cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]]
+            
+            return y_pred_classes, y_pred_cluster, y_true
+
     
     def girvan_newman(self):
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
         
-        for i in tqdm(range(len(self.data.test_nodes)), desc='Girvan-Newman'):
-            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
-            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
-            for c in nx.connected_components(G_test_init):
-                if self.data.test_nodes[i] in c:
-                    G_test = G_test_init.subgraph(c).copy()
-            if len(G_test.nodes) == 1:
-                print('Isolated test node found, skipping!')
-                continue
-            else:
-                comp = nx.community.girvan_newman(G_test.copy())
-                for communities in itertools.islice(comp, int(len(self.data.classes))):
-                    preds_nodes_per_cluster = communities
-                
-                preds_nodes_per_cluster = [list(c) for c in preds_nodes_per_cluster]
-                    
-                preds = []
-                for j in range(len(preds_nodes_per_cluster)):
-                    curr_cluster = preds_nodes_per_cluster[j]
-                    for cl in range(len(curr_cluster)):
-                        preds.append(j)
-                        
-                graph_test_node_list = np.array([x for xx in preds_nodes_per_cluster for x in xx])
-                sorting_arguments = np.argsort(graph_test_node_list)
-                graph_test_node_list = list(graph_test_node_list[sorting_arguments])
-                preds = np.array(preds)[sorting_arguments]
-                
-                # print(graph_test_node_list)
-                # print(preds)
-
-                ground_truth = []
-                nodes_classes = nx.get_node_attributes(G_test, name='class')
-
-                for node in graph_test_node_list:
-                    ground_truth.append(nodes_classes[node])
-
-                
-                y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
-                y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
-
-                cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
-                y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
+        with Pool(os.cpu_count()) as p: # os.cpu_count()
+            res = list(tqdm(p.imap(self.girvan_newman_thread, range(len(self.data.test_nodes))), total=len(self.data.test_nodes), desc='Girvan-Newman'))
+        
+        for item in res:
+            y_pred_classes.append(item[0])
+            y_pred_cluster.append(item[1])
+            y_true.append(item[2])
                 
         print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
         score = f1_score(y_true, y_pred_classes, average='macro')
