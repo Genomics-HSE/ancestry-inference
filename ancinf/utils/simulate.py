@@ -511,7 +511,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
         outfile = outfile+outfile_postfix
 
     
-    print(f"We will process experiments from {fromexp} to {toexp} on gpu {gpu}")
+    print(f"We will process experiments from [{fromexp} to {toexp}) on gpu {gpu}")
     
     runidx = 1
     
