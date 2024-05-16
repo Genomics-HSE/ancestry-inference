@@ -428,7 +428,11 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         starttime = time.time()
         runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx )
         runtime = time.time() - starttime
-        runresult = {"f1macro": runresult_old,
+        if type(runresult_old) is dict:
+            runresult = runresult_old
+            runresult["time"] = runtime
+        else:
+            runresult = {"f1macro": runresult_old,
                      "f1weighted": 404,
                      "accuracy": 404,
                      "classf1scores": {"class1": 404, "class2": 404 },
@@ -444,7 +448,11 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         starttime = time.time()
         runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[mlpclass], gnn=False, logweights=log_weights, gpu=gpuidx )
         runtime = time.time() - starttime
-        runresult = {"f1macro": runresult_old,
+        if type(runresult_old) is dict:
+            runresult = runresult_old
+            runresult["time"] = runtime
+        else:
+            runresult = {"f1macro": runresult_old,
                      "f1weighted": 404,
                      "accuracy": 404,
                      "classf1scores": {"class1": 404, "class2": 404 },
@@ -480,8 +488,12 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
                 score = bmlp.torch_geometric_label_propagation(1, 0.0001)                
             runtime = time.time() - starttime
             print(comdet,":", score)
-            result = {"f1macro": score, "time" :runtime}
-            expresults[comdet].append(result)
+            if type(score) is dict:
+                runresult = score
+                runresult["time"] = runtime
+            else:            
+                runresult = {"f1macro": score, "time" :runtime}
+            expresults[comdet].append(runresult)
 
 
 
@@ -498,14 +510,8 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
             inferredlabels.append( testresult )
         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
         cleanexpresults[nnclass].append(runresult)
-'''
-    runresult = {    "f1macro": runresult_old,
-                     "f1weighted": 404,
-                     "accuracy": 404,
-                     "classf1scores": {"class1": 404, "class2": 404 },
-                     "time" : runtime
-                    }    
-'''       
+
+        
 def compiledsresults(expresults, fullist):
     dsres = {}
     for nnclass in fullist:
@@ -678,7 +684,7 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
         #print(f"Log weignts: {logweights}")
         #dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights)    
         dp.make_train_valid_test_datasets_with_numba('graph_based', 'homogeneous', 'one', 'multiple', rundir, log_edge_weights=logweights)    
-        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 100,
+        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 50,
                       'graph_based', 10, 1, cuda_device_specified=gpu)
     
     return trainer.run()           
