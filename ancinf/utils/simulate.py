@@ -264,7 +264,7 @@ def simulateandsave(workdir, infile, outfile, rng):
     with open(experimentlistfile,"w") as f:
         json.dump(expfiledict, f, indent=4, sort_keys=True)
 
-def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare, cleandatafilename, rng):
+def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare, maskshare, cleandatafilename, rng):
     retval = None
     pairs, weights, labels, labeldict, idxtranslator = load_pure( indatafilename, debug=False, **(filters))
     conseq_pairs = translate_indices(pairs, idxtranslator)
@@ -362,9 +362,11 @@ def preprocess(datadir, workdir, infile, outfile, rng):
             cleanshare = trainparams["cleanshare"]
             cleandatafilename =  projname+'_'+datasetname+'_clean.csv' 
             cleandatafilepathname = os.path.join(workdir, cleandatafilename)
-            
+        maskshare = None
+        if "maskshare" in trainparams:
+            maskshare = trainparams["maskshare"]
         
-        retval = filterandsaveonedataset(indatafilename, os.path.join(workdir, outdatafilename), datasetparams["filters"], cleanshare, cleandatafilepathname, rng)
+        retval = filterandsaveonedataset(indatafilename, os.path.join(workdir, outdatafilename), datasetparams["filters"], cleanshare, maskshare, cleandatafilepathname, rng)
 
         savepartitions(os.path.join(workdir, outdatafilename), trainparams["valshare"], trainparams["testshare"], trainparams["split_count"],
                        os.path.join(workdir, partfilename), rng)
