@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import dendrogram, linkage
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy
 from sklearn.model_selection import KFold
 from torch.optim.lr_scheduler import StepLR
 from torch_geometric.loader import DataLoader
@@ -773,11 +773,22 @@ class Trainer:
         y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_testing)
         print('Test report')
         print(classification_report(y_true, y_pred))
-        score = f1_score(y_true, y_pred, average='macro')
-        print(f"f1 macro score on test dataset: {score}")
+        
+        f1_macro_score = f1_score(y_true, y_pred, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        
+        f1_weighted_score = f1_score(y_true, y_pred, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accurcay(y_true, y_pred)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
         for i in range(len(self.data.classes)):
             score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
         cm = confusion_matrix(y_true, y_pred)
 
@@ -787,7 +798,7 @@ class Trainer:
             sns.heatmap(cm, annot=True, fmt=".2f", ax=ax)
             plt.show()
 
-        return score
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
         
 
     def run(self):
@@ -905,10 +916,23 @@ class BaselineMethods:
             y_true.append(graph.y[-1])
             y_pred.append(model(y=graph.y, mask = [True] * (len(graph.y)-1) + [False],  edge_index=graph.edge_index, edge_weight=graph.weight if use_weight==True else None).argmax(dim=-1)[-1]) # -1 is always test vertex
             
-        score = f1_score(y_true, y_pred, average='macro')
-        print(f"f1 macro score on test dataset: {score}")
+        f1_macro_score = f1_score(y_true, y_pred, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
         
-        return score
+        f1_weighted_score = f1_score(y_true, y_pred, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accurcay(y_true, y_pred)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
     
     def map_cluster_labels_with_target_classes(self, cluster_labels, target_labels):
         # vouter algorithm
@@ -986,10 +1010,25 @@ class BaselineMethods:
         y_true = y_true[y_true != -1]
                 
         print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
-        score = f1_score(y_true, y_pred_classes, average='macro')
-        print(f"f1 macro score on test dataset: {score}")
         
-        return score
+        f1_macro_score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        
+        f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accurcay(y_true, y_pred_classes)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred_classes, average='macro', labels=[i])
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+    
     
     def simrank_distance(self, G):
         simrank = nx.simrank_similarity(G)
@@ -1051,10 +1090,24 @@ class BaselineMethods:
                 y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
                 
         print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
-        score = f1_score(y_true, y_pred_classes, average='macro')
-        print(f"f1 macro score on test dataset: {score}")
         
-        return score
+        f1_macro_score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        
+        f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accurcay(y_true, y_pred_classes)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred_classes, average='macro', labels=[i])
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
     
     def girvan_newman_thread(self, test_node_idx):
 
@@ -1125,10 +1178,24 @@ class BaselineMethods:
         y_true = y_true[y_true != -1]
                 
         print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
-        score = f1_score(y_true, y_pred_classes, average='macro')
-        print(f"f1 macro score on test dataset: {score}")
         
-        return score
+        f1_macro_score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        
+        f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accurcay(y_true, y_pred_classes)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred_classes, average='macro', labels=[i])
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
         
     def sklearn_label_propagation():
         print('Better for graph-based features')
