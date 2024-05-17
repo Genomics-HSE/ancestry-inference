@@ -25,7 +25,7 @@ from sklearn.metrics import f1_score
 
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
 from .genlink import DataProcessor, BaselineMethods, NullSimulator, Trainer,  TAGConv_3l_128h_w_k3, \
-                  TAGConv_3l_512h_w_k3, GINNet, AttnGCN, TAGConv_9l_128h_k3,\
+                  TAGConv_3l_512h_w_k3, GINNet, AttnGCN, TAGConv_9l_128h_k3, GCNConv_3l_128h_w, \
                   TAGConv_9l_512h_nw_k3, MLP_3l_128h, MLP_3l_512h, MLP_9l_128h,\
                   MLP_9l_512h
 
@@ -34,12 +34,15 @@ NNs = {
     "MLP_3l_512h": MLP_3l_512h,
     "MLP_9l_128h": MLP_9l_128h,
     "MLP_9l_512h": MLP_9l_512h,
-    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
-    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
-    "GINNet": GINNet,
-    "AttnGCN": AttnGCN,
     "TAGConv_3l_128h_w_k3": TAGConv_3l_128h_w_k3,
     "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3,    
+    "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
+    "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
+    "GCNConv_3l_128h_w": GCNConv_3l_128h_w,
+    "GINNet": GINNet,
+    "AttnGCN": AttnGCN,    
+    
+    
     
 }
 
