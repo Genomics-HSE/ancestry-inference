@@ -966,7 +966,7 @@ class BaselineMethods:
         else:
             L = nx.to_numpy_array(G_test)
             # L = nx.normalized_laplacian_matrix(G_test, weight='ibd_sum' if use_weight else None) # node order like in G.nodes
-            clustering = SpectralClustering(n_clusters=int(len(self.data.classes)), assign_labels='discretize', random_state=random_state, affinity='precomputed', n_init=100).fit(L)
+            clustering = SpectralClustering(n_clusters=int(len(self.data.classes)), assign_labels='discretize', random_state=42, affinity='precomputed', n_init=100).fit(L)
             preds = clustering.labels_
 
             ground_truth = []
