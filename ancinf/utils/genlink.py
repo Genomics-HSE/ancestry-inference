@@ -962,7 +962,7 @@ class BaselineMethods:
             return -1, -1, -1
         elif len(G_test) <= len(self.data.classes):
             print('Too few nodes!!! Skipping!!!')
-            retirn -1, -1, -1
+            return -1, -1, -1
         else:
             L = nx.to_numpy_array(G_test)
             # L = nx.normalized_laplacian_matrix(G_test, weight='ibd_sum' if use_weight else None) # node order like in G.nodes
