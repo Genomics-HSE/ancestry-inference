@@ -1631,7 +1631,77 @@ class GCNConv_3l_128h_w(torch.nn.Module):
         x = F.elu(self.conv1(x, edge_index, edge_attr))
         x = F.elu(self.conv2(x, edge_index, edge_attr))
         x = self.conv3(x, edge_index, edge_attr)
-        return x    
+        return x
+    
+class GCNConv_3l_512h_w(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_3l_512h_w, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 512)
+        self.conv2 = GCNConv(512, 512)
+        self.conv3 = GCNConv(512, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = self.conv3(x, edge_index, edge_attr)
+        return x 
+    
+  
+class GCNConv_9l_128h_w(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_9l_128h_w, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 512)
+        self.conv2 = GCNConv(128, 128)
+        self.conv3 = GCNConv(128, 128)
+        self.conv4 = GCNConv(128, 128)
+        self.conv5 = GCNConv(128, 128)
+        self.conv6 = GCNConv(128, 128)
+        self.conv7 = GCNConv(128, 128)
+        self.conv8 = GCNConv(128, 128)
+        self.conv9 = GCNConv(128, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = F.elu(self.conv3(x, edge_index, edge_attr))
+        x = F.elu(self.conv4(x, edge_index, edge_attr))
+        x = F.elu(self.conv5(x, edge_index, edge_attr))
+        x = F.elu(self.conv6(x, edge_index, edge_attr))
+        x = F.elu(self.conv7(x, edge_index, edge_attr))
+        x = F.elu(self.conv8(x, edge_index, edge_attr))
+        x = self.conv9(x, edge_index, edge_attr)
+        return x 
+
+
+class GCNConv_9l_512h_w(torch.nn.Module):
+    def __init__(self, data):
+        super(GCNConv_9l_512h_w, self).__init__()
+        self.conv1 = GCNConv(data.num_features, 512)
+        self.conv2 = GCNConv(512, 512)
+        self.conv3 = GCNConv(512, 512)
+        self.conv4 = GCNConv(512, 512)
+        self.conv5 = GCNConv(512, 512)
+        self.conv6 = GCNConv(512, 512)
+        self.conv7 = GCNConv(512, 512)
+        self.conv8 = GCNConv(512, 512)
+        self.conv9 = GCNConv(512, int(data.num_classes))
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x.float(), data.edge_index, data.weight.float()
+        x = F.elu(self.conv1(x, edge_index, edge_attr))
+        x = F.elu(self.conv2(x, edge_index, edge_attr))
+        x = F.elu(self.conv3(x, edge_index, edge_attr))
+        x = F.elu(self.conv4(x, edge_index, edge_attr))
+        x = F.elu(self.conv5(x, edge_index, edge_attr))
+        x = F.elu(self.conv6(x, edge_index, edge_attr))
+        x = F.elu(self.conv7(x, edge_index, edge_attr))
+        x = F.elu(self.conv8(x, edge_index, edge_attr))
+        x = self.conv9(x, edge_index, edge_attr)
+        return x  
+    
+    
 
 class GCNConv_3l_128h_nw(torch.nn.Module):
     def __init__(self, data):
