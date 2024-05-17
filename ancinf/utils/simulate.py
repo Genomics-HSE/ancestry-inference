@@ -40,10 +40,7 @@ NNs = {
     "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
     "GCNConv_3l_128h_w": GCNConv_3l_128h_w,
     "GINNet": GINNet,
-    "AttnGCN": AttnGCN,    
-    
-    
-    
+    "AttnGCN": AttnGCN   
 }
 
 
@@ -511,13 +508,18 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
                 dp = DataProcessor(datafile)
                 dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
                 bm = BaselineMethods(dp)                
-                score = bm.girvan_newman()                
+                score = bm.girvan_newman()  
             if comdet == "LabelPropagation":
                 dplp = DataProcessor(datafile)
                 dplp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')        
                 dplp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'tmp')
                 bmlp  = BaselineMethods(dplp)                
-                score = bmlp.torch_geometric_label_propagation(1, 0.0001)                
+                score = bmlp.torch_geometric_label_propagation(1, 0.0001)  
+            if comdet == "RelationalNeighbor":
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy') 
+                bm = BaselineMethods(dp)
+                score = bm.relational_neighbor_classifier(0.001)            
             runtime = time.time() - starttime
             print(comdet,":", score)
             if type(score) is dict:
