@@ -16,14 +16,13 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import dendrogram, linkage
-from sklearn.metrics import f1_score, accuracy
+from sklearn.metrics import f1_score, accuracy_score
 from sklearn.model_selection import KFold
 from torch.optim.lr_scheduler import StepLR
 from torch_geometric.loader import DataLoader
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.semi_supervised import LabelPropagation
 from sklearn.neighbors import KNeighborsClassifier
 from scipy.stats import bernoulli, expon
@@ -780,7 +779,7 @@ class Trainer:
         f1_weighted_score = f1_score(y_true, y_pred, average='weighted')
         print(f"f1 weighted score on test dataset: {f1_weighted_score}")
         
-        acc = accurcay(y_true, y_pred)
+        acc = accuracy_score(y_true, y_pred)
         print(f"accuracy score on test dataset: {acc}")
         
         f1_macro_score_per_class = dict()
@@ -922,7 +921,7 @@ class BaselineMethods:
         f1_weighted_score = f1_score(y_true, y_pred, average='weighted')
         print(f"f1 weighted score on test dataset: {f1_weighted_score}")
         
-        acc = accurcay(y_true, y_pred)
+        acc = accuracy_score(y_true, y_pred)
         print(f"accuracy score on test dataset: {acc}")
         
         f1_macro_score_per_class = dict()
@@ -1017,7 +1016,7 @@ class BaselineMethods:
         f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
         print(f"f1 weighted score on test dataset: {f1_weighted_score}")
         
-        acc = accurcay(y_true, y_pred_classes)
+        acc = accuracy_score(y_true, y_pred_classes)
         print(f"accuracy score on test dataset: {acc}")
         
         f1_macro_score_per_class = dict()
@@ -1097,7 +1096,7 @@ class BaselineMethods:
         f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
         print(f"f1 weighted score on test dataset: {f1_weighted_score}")
         
-        acc = accurcay(y_true, y_pred_classes)
+        acc = accuracy_score(y_true, y_pred_classes)
         print(f"accuracy score on test dataset: {acc}")
         
         f1_macro_score_per_class = dict()
@@ -1185,7 +1184,7 @@ class BaselineMethods:
         f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
         print(f"f1 weighted score on test dataset: {f1_weighted_score}")
         
-        acc = accurcay(y_true, y_pred_classes)
+        acc = accuracy_score(y_true, y_pred_classes)
         print(f"accuracy score on test dataset: {acc}")
         
         f1_macro_score_per_class = dict()
