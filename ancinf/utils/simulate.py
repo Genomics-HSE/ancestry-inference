@@ -6,7 +6,7 @@ from os import listdir
 from os.path import isfile, join
 import os.path
 import time
-
+from contextlib import ExitStack
 
 
 from .genlink import simulate_graph_fn, generate_matrices_fn, independent_test
@@ -271,61 +271,80 @@ def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare
     labellist = labeldict_to_labellist(labeldict)
     
     if not (cleanshare is None):
-        #todo remove all edges to nodes from cleanshare into separate file
-        graphdata = composegraphs(pairs, weights, labels, labeldict, idxtranslator)
-        ncls = graphdata[0]['nodeclasses']
-        grph = graphdata[0]['graph']
-        trns = graphdata[0]['translation']
-        #translate indices in ncls to original indices
-        permt = getrandompermutation(ncls, rng)
-        trainnodeclasses, valnodeclasses, testnodeclasses = dividetrainvaltest(ncls, 0, cleanshare, permt)
-        part_ok, part_errors = checkpartition(grph, trainnodeclasses, valnodeclasses, testnodeclasses, details=False, trns=trns)
-        if not part_ok:
-            print("bad partition for clean dataset part")                    
-        trainnodes, _, testnodes = gettrainvaltestnodes(trainnodeclasses, valnodeclasses, testnodeclasses)
-        clnodes = idxtranslator[testnodes].tolist()
-        #print("clean nodes:", clnodes)
-        cllabels = [labellist[lbl] for lbl in labels[testnodes] ] 
-        #print("clean node labels:", cllabels)
-        retval = {"cleannodes":clnodes, "cleannodelabels":cllabels}
-        with open(outdatafilename, 'w', encoding="utf-8") as f:
-            with open(cleandatafilename, 'w', encoding="utf-8") as f2:
-                f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
-                f2.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
-                for idx, pair in enumerate(pairs):
-                    i = conseq_pairs[idx][0]
-                    j = conseq_pairs[idx][1]                    
-                    label_i = labellist[labels[i]]
-                    label_j = labellist[labels[j]]
-                    name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
-                    name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
-                    if (i in trainnodes) and (j in trainnodes):                        
-                        f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
-                    else:
-                        if i in testnodes:                            
-                            if j in testnodes:
-                                #we do not want edges between clean nodes
-                                pass
-                            else:
-                                f2.write(f'node_{pair[0]},node_{pair[1]},unknown,{name_j},{weights[idx][0]},{pair[2]}\n')
-                        elif j in testnodes:
-                            f2.write(f'node_{pair[0]},node_{pair[1]},{name_i},unknown,{weights[idx][0]},{pair[2]}\n')
-                        else:
-                            print("ERROR! No node from pair belong to train or clean partitions")
-
-        
+        pass
     else:
-        with open(outdatafilename, 'w', encoding="utf-8") as f:
-            f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
-            for idx, pair in enumerate(pairs):
-                i = conseq_pairs[idx][0]
-                j = conseq_pairs[idx][1]
-                label_i = labellist[labels[i]]
-                label_j = labellist[labels[j]]
-                name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
-                name_j = label_j if "," not in label_j else '\"' + label_j + '\"'
+        cleanshare = 0
+    #todo remove all edges to nodes from cleanshare into separate file
+    graphdata = composegraphs(pairs, weights, labels, labeldict, idxtranslator)
+    ncls = graphdata[0]['nodeclasses']
+    grph = graphdata[0]['graph']
+    trns = graphdata[0]['translation']
+    #translate indices in ncls to original indices
+    permt = getrandompermutation(ncls, rng)
+
+    trainnodeclasses, valnodeclasses, testnodeclasses = dividetrainvaltest(ncls, maskshare, cleanshare, permt)
+    part_ok, part_errors = checkpartition(grph, trainnodeclasses, valnodeclasses, testnodeclasses, details=False, trns=trns)
+    if not part_ok:
+        print("bad partition for clean dataset part")                    
+    trainnodes, masknodes, cleannodes = gettrainvaltestnodes(trainnodeclasses, valnodeclasses, testnodeclasses)    
+    print("trainnodes", idxtranslator[trainnodes].tolist())
+    if maskshare>0:
+        print("masknodes", idxtranslator[masknodes].tolist())
+    if cleanshare > 0:
+        print("cleannodes", idxtranslator[cleannodes].tolist())
+    retval = {}
+    if cleanshare > 0:
+        clnodes = idxtranslator[cleannodes].tolist()
+        #print("clean nodes:", clnodes)
+        cllabels = [labellist[lbl] for lbl in labels[cleannodes] ] 
+        #print("clean node labels:", cllabels)
+        retval["cleannodes"] = clnodes
+        retval["cleannodelabels"] = cllabels
+       
+    if maskshare > 0:
+        msnodes = idxtranslator[masknodes].tolist()        
+        retval["maskednodes"] = msnodes
+        
+    with ExitStack() as filestack:
+        f = filestack.enter_context(open(outdatafilename, 'w', encoding="utf-8"))
+        f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+        if cleanshare > 0:
+            f_clean = filestack.enter_context(open(cleandatafilename, 'w', encoding="utf-8"))
+            f_clean.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+        if maskshare > 0:
+            f_unmasked = filestack.enter_context(open(outdatafilename+".unmasked.csv", 'w', encoding="utf-8"))
+            f_unmasked.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+        
+        for idx, pair in enumerate(pairs):
+            i = conseq_pairs[idx][0]
+            j = conseq_pairs[idx][1]                    
+            label_i = labellist[labels[i]]
+            label_j = labellist[labels[j]]
+
+            name_j = unmasked_name_j = label_j if "," not in label_j else '\"' + label_j + '\"'                
+            name_i = unmasked_name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
+            if maskshare > 0:
+                if i in masknodes:
+                    name_i = "masked"                
+                if j in masknodes:
+                    name_j = "masked"
+
+            if ((i in trainnodes) or (i in masknodes)) and ((j in trainnodes) or (j in masknodes)):                        
                 f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
-            
+                if maskshare > 0:
+                    f_unmasked.write(f'node_{pair[0]},node_{pair[1]},{unmasked_name_i},{unmasked_name_j},{weights[idx][0]},{pair[2]}\n')
+            else:
+                if i in cleannodes:                            
+                    if j in cleannodes:
+                        #we do not want edges between clean nodes
+                        pass
+                    else:
+                        f_clean.write(f'node_{pair[0]},node_{pair[1]},unknown,{name_j},{weights[idx][0]},{pair[2]}\n')
+                elif j in cleannodes:
+                    f_clean.write(f'node_{pair[0]},node_{pair[1]},{name_i},unknown,{weights[idx][0]},{pair[2]}\n')
+                else:
+                    print("ERROR! No node from pair belong to train or clean partitions")
+        
     return retval
     
         
@@ -362,13 +381,17 @@ def preprocess(datadir, workdir, infile, outfile, rng):
             cleanshare = trainparams["cleanshare"]
             cleandatafilename =  projname+'_'+datasetname+'_clean.csv' 
             cleandatafilepathname = os.path.join(workdir, cleandatafilename)
-        maskshare = None
+        
         if "maskshare" in trainparams:
             maskshare = trainparams["maskshare"]
-        
+            datafnforpartition = outdatafilename+".unmasked.csv"
+        else:
+            maskshare = 0
+            datafnforpartition = outdatafilename
+            
         retval = filterandsaveonedataset(indatafilename, os.path.join(workdir, outdatafilename), datasetparams["filters"], cleanshare, maskshare, cleandatafilepathname, rng)
-
-        savepartitions(os.path.join(workdir, outdatafilename), trainparams["valshare"], trainparams["testshare"], trainparams["split_count"],
+        
+        savepartitions(os.path.join(workdir, datafnforpartition), trainparams["valshare"], trainparams["testshare"], trainparams["split_count"],
                        os.path.join(workdir, partfilename), rng)
 
         expdict = {
@@ -380,6 +403,8 @@ def preprocess(datadir, workdir, infile, outfile, rng):
             expdict["cleanfile"] = cleandatafilename
             expdict["cleannodes"] =  retval["cleannodes"]
             expdict["cleannodelabels"] = retval["cleannodelabels"]
+        if "maskshare" in trainparams:
+            expdict["maskednodes"] = retval["maskednodes"]
         experimentlist.append(expdict)            
         expfiledict[datasetname] = experimentlist 
         
