@@ -790,8 +790,9 @@ class Trainer:
         print('Evaluation report')
         print(classification_report(y_true, y_pred))
         for i in range(len(self.data.classes)):
-            score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
-            print(f"f1 macro score on valid dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            if self.data.classes[i] != 'masked':
+                score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
+                print(f"f1 macro score on valid dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
 
         current_f1_score_macro = f1_score(y_true, y_pred, average='macro')
         if current_f1_score_macro > self.max_f1_score_macro:
@@ -823,9 +824,10 @@ class Trainer:
         f1_macro_score_per_class = dict()
         
         for i in range(len(self.data.classes)):
-            score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
-            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
-            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+            if self.data.classes[i] != 'masked':
+                score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
+                print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+                f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
         cm = confusion_matrix(y_true, y_pred)
 
