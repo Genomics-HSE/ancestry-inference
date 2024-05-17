@@ -278,6 +278,7 @@ class DataProcessor:
             self.test_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in test_path]
             if mask_path is not None:
                 self.mask_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in mask_path]
+                self.train_nodes = list(filter(lambda node: node not in self.mask_nodes, self.train_nodes))
             
         # if data_type == 'object':
         #     self.train_nodes = train_path
@@ -1250,7 +1251,7 @@ class BaselineMethods:
         new_cond = new_cond / new_cond.sum(1, keepdims=1)
         return new_cond
         
-    def relational_neighbor_classifier_core(self, G, threshold):
+    def relational_neighbor_classifier_core(self, G, threshold, x_labeled, x_unlabeled, y_labeled):
         cond = initial_conditional(G, y_labeled, x_labeled, x_unlabeled)
         A = nx.to_numpy_array(G)
         diffs = []
@@ -1268,7 +1269,7 @@ class BaselineMethods:
         y_pred_cluster = []
         y_true = []
         
-        for i in tqdm(range(len(self.data.test_nodes)), desc='Agglomerative clustering'):
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Relational classifier'):
             current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
             G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
             for c in nx.connected_components(G_test_init):
@@ -1282,14 +1283,11 @@ class BaselineMethods:
                 continue
             else:
                 
-                preds = self.relational_neighbor_classifier_core(G_test, 0.001)
-
                 ground_truth = []
                 nodes_classes = nx.get_node_attributes(G_test, name='class')
-                # print(len(G_test.nodes))
-                # print(nodes_ibd_sum)
                 for node in G_test.nodes:
                     ground_truth.append(nodes_classes[node])
+                preds = self.relational_neighbor_classifier_core(G_test, 0.001, np.array(self.data.train_nodes), np.array([self.data.test_nodes[i]]), np.array(ground_truth))
 
                 graph_test_node_list = list(G_test.nodes)
                 y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
