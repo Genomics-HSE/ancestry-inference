@@ -279,6 +279,8 @@ class DataProcessor:
             if mask_path is not None:
                 self.mask_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in mask_path]
                 self.train_nodes = list(filter(lambda node: node not in self.mask_nodes, self.train_nodes))
+                self.valid_nodes = list(filter(lambda node: node not in self.mask_nodes, self.valid_nodes))
+                self.test_nodes = list(filter(lambda node: node not in self.mask_nodes, self.test_nodes))
             
         # if data_type == 'object':
         #     self.train_nodes = train_path
