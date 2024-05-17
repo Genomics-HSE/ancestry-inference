@@ -1253,11 +1253,10 @@ class BaselineMethods:
 
         return probs
     
-    def update_conditional(self, A, cond, x_labeled, x_unlabeled, G):
+    def update_conditional(self, A, cond, x_labeled, x_unlabeled, graph_nodes):
 
         new_cond = A @ cond
-        
-        graph_nodes = list(G.nodes)
+    
         for i in range(len(x_labeled)):
             new_cond[graph_nodes.index(x_labeled[i])] = cond[[graph_nodes.index(x_labeled[i])]]
         # new_cond[x_labeled] = cond[x_labeled]
@@ -1269,12 +1268,15 @@ class BaselineMethods:
         A = nx.to_numpy_array(G)
         diffs = []
         diff = np.inf
+        graph_nodes = list(G.nodes)
         while diff > threshold:
-            next_cond = self.update_conditional(A, cond, x_labeled, x_unlabeled, G)
-            diff = np.linalg.norm(cond[x_unlabeled] - next_cond[x_unlabeled])
+            # print(diff)
+            next_cond = self.update_conditional(A, cond, x_labeled, x_unlabeled, graph_nodes)
+            # print(np.all(next_cond == cond))
+            diff = np.linalg.norm(cond[graph_nodes.index(x_unlabeled[0])] - next_cond[graph_nodes.index(x_unlabeled[0])])
             diffs.append(diff)
             cond = next_cond
-        return np.argmax(cond[x_unlabeled], axis=1)
+        return np.argmax(cond, axis=1)
     
         
     def relational_neighbor_classifier(self, threshold):
@@ -1300,16 +1302,32 @@ class BaselineMethods:
                 nodes_classes = nx.get_node_attributes(G_test, name='class')
                 for node in G_test.nodes:
                     ground_truth.append(nodes_classes[node])
-                preds = self.relational_neighbor_classifier_core(G_test, threshold, np.array(self.data.train_nodes), np.array([self.data.test_nodes[i]]), np.array(ground_truth))
+                cc_train_nodes = np.array(list(G_test.nodes))
+                cc_train_nodes = cc_train_nodes[cc_train_nodes != self.data.test_nodes[i]]
+                preds = self.relational_neighbor_classifier_core(G_test, threshold, cc_train_nodes, np.array([self.data.test_nodes[i]]), np.array(ground_truth))
 
                 graph_test_node_list = list(G_test.nodes)
-                y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
                 y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
 
-                cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
-                y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
-                
-            
+                y_pred_classes.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
+        
+        f1_macro_score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        
+        f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accuracy_score(y_true, y_pred_classes)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred_classes, average='macro', labels=[i])
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
         
     def sklearn_label_propagation():
         print('Better for graph-based features')
