@@ -434,7 +434,7 @@ def getexplistinfo(explist):
     return totalruncount, expcount
 
 
-def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights, gpuidx):
+def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights, gpuidx):
     #TODO maybe it will not hurt to create DataProcessor once for a split 
     #(now they are created for every classifier from scratch)
     train_list = []
@@ -448,12 +448,14 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
     train_split = np.array(train_list)
     valid_split = np.array(val_list)
     test_split = np.array(test_list)
-
+    if not(maskednodes is None):
+        maskednodes = np.array(maskednodes)
+        
     for gnnclass in gnnlist:
         run_name = runbasename + "_"+gnnclass
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx )
+        runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
         runtime = time.time() - starttime
         if type(runresult_old) is dict:
             runresult = runresult_old
@@ -473,7 +475,7 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
         run_name = runbasename +"_"+mlpclass
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[mlpclass], gnn=False, logweights=log_weights, gpu=gpuidx )
+        runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[mlpclass], gnn=False, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
         runtime = time.time() - starttime
         if type(runresult_old) is dict:
             runresult = runresult_old
@@ -639,15 +641,16 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
               
         
             #1. all heuristics for all partitions at once
-            starttime = time.time()
-            heuresult = runheur(rng, datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None)
-            runtime = time.time() - starttime
-            #save only selected by user
-            #TODO update to new format
-            for heurclass in heurlist: 
-                expresults[heurclass] = [ {"f1macro": res, 
-                                           "time": runtime/len(heuresult[heurclass]["values"]) 
-                                          } for res in heuresult[heurclass]["values"] ]
+            if len(heurlist)>0:
+                starttime = time.time()
+                heuresult = runheur(rng, datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None)
+                runtime = time.time() - starttime
+                #save only selected by user
+                #TODO update to new format
+                for heurclass in heurlist: 
+                    expresults[heurclass] = [ {"f1macro": res, 
+                                               "time": runtime/len(heuresult[heurclass]["values"]) 
+                                              } for res in heuresult[heurclass]["values"] ]
             #2. GNNs and MLPs partition by partition
             #if clean test is requiered we prepare dataframes with just one unlabelled node
             if "cleanfile" in exp:
@@ -665,12 +668,17 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                     onenodedf = pd.concat([dfmain, fltr1, fltr2])                    
                     cleantestdataframes[node] = onenodedf.reset_index(drop=True)
                 cleanexpresults = {nnclass:[] for nnclass in gnnlist} 
+             
+            if "maskednodes" in exp:
+                maskednodes = exp["maskednodes"]
+            else:
+                maskednodes = None
 
             
             for part_idx, partition in enumerate(partitions["partitions"]):
                 print(f"=========== Run {runidx} of {totalruncount} ======================")
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
-                processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu)
+                processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu )
                 datasetresults[-1] = compiledsresults(expresults, fullist)                
                 datasetresults[-1]["exp_idx"] = exp_idx
                 result[dataset] = datasetresults
@@ -695,15 +703,15 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
 
                 
 
-def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, rundir, nnclass, gnn=True, logweights=False, gpu=0):
+def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, rundir, nnclass, gnn=True, logweights=False, gpu=0, maskednodes=None):
     '''
         returns f1 macro for one experiment
     '''
     dp = DataProcessor(dataframe_path)
-    dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
-    
+    dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy', mask_path = maskednodes)
+    masking = not (maskednodes is None)
     if gnn:        
-        dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights)    
+        dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
         trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
                       'one_hot', 1, 1, cuda_device_specified=gpu)
     else:
