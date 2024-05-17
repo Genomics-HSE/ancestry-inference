@@ -766,7 +766,7 @@ class Trainer:
             self.patience_counter += 1
             print(f'Metric was not improved for the {self.patience_counter}th time')
 
-    def test(self):
+    def test(self, plot_cm=False):
         self.model = self.model_cls(self.data.array_of_graphs_for_training[0]).to(self.device)
         self.model.load_state_dict(torch.load(self.log_dir + '/model_best.bin'))
         self.model.eval()
@@ -781,10 +781,11 @@ class Trainer:
 
         cm = confusion_matrix(y_true, y_pred)
 
-        plt.clf()
-        fig, ax = plt.subplots(1, 1)
-        sns.heatmap(cm, annot=True, fmt=".2f", ax=ax)
-        plt.show()
+        if plot_cm:
+            plt.clf()
+            fig, ax = plt.subplots(1, 1)
+            sns.heatmap(cm, annot=True, fmt=".2f", ax=ax)
+            plt.show()
 
         return score
         
