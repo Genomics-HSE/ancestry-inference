@@ -23,8 +23,8 @@ def visualize_classifier_data(data, sort_bars=False, annotate=False):
                 if name == "exp_idx":
                     continue
                 classifier_names.append(name)
-                means.append(metrics['mean'])
-                std_devs.append(metrics['std'])
+                means.append(metrics['f1_macro']['mean'])
+                std_devs.append(metrics['f1_macro']['std'])
 
         # Create a DataFrame for easier plotting with seaborn
         df = pd.DataFrame({
