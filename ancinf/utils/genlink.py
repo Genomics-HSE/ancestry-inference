@@ -168,6 +168,7 @@ class DataProcessor:
         self.train_nodes = None
         self.valid_nodes = None
         self.test_nodes = None
+        self.mask_nodes = None
         self.array_of_graphs_for_training = []
         self.array_of_graphs_for_validation = []
         self.array_of_graphs_for_testing = []
@@ -259,7 +260,7 @@ class DataProcessor:
                 pickle.dump(self.test_nodes, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-    def load_train_valid_test_nodes(self, train_path, valid_path, test_path, data_type):
+    def load_train_valid_test_nodes(self, train_path, valid_path, test_path, data_type, mask_path=None):
         if data_type == 'pickle':
             with open(train_path, 'rb') as handle:
                 self.train_nodes = pickle.load(handle)
@@ -275,6 +276,8 @@ class DataProcessor:
             self.train_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in train_path] # for numpy it is not a path, it is actual array
             self.valid_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in valid_path]
             self.test_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in test_path]
+            if mask_path is not None:
+                self.mask_nodes = [self.node_names_to_int_mapping[f'node_{node}'] for node in mask_path]
             
         # if data_type == 'object':
         #     self.train_nodes = train_path
@@ -300,14 +303,23 @@ class DataProcessor:
 
         return hashmap
 
-    def make_one_hot_encoded_features(self, all_nodes, specific_nodes, hashmap, dict_node_classes):
+    def make_one_hot_encoded_features(self, all_nodes, specific_nodes, hashmap, dict_node_classes, mask_nodes=None):
         # order of features is the same as order nodes in self.nodes
-        features = np.zeros((len(all_nodes), len(self.classes)))
+        if mask_nodes is not None:
+            num_classes = len(self.classes) - 1
+        else:
+            num_classes = len(self.classes)
+        features = np.zeros((len(all_nodes), num_classes))
         for n in all_nodes:
             if n in specific_nodes:
-                features[hashmap[int(n)], :] = [1 / len(self.classes)] * len(self.classes)
+                features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
+            elif mask_nodes is not None:
+                if n in mask_nodes:
+                    features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
+                else:
+                    features[hashmap[int(n)], :] = [1 if i == dict_node_classes[n] else 0 for i in range(num_classes)]     
             else:
-                features[hashmap[int(n)], :] = [1 if i == dict_node_classes[n] else 0 for i in range(len(self.classes))]
+                features[hashmap[int(n)], :] = [1 if i == dict_node_classes[n] else 0 for i in range(num_classes)]
 
         return features
     
@@ -395,12 +407,16 @@ class DataProcessor:
 
         return rows_for_adding_per_node
 
-    def generate_graph(self, curr_nodes, specific_node, dict_node_classes, df, log_edge_weights, feature_type):
+    def generate_graph(self, curr_nodes, specific_node, dict_node_classes, df, log_edge_weights, feature_type, masking):
 
         hashmap = self.make_hashmap(curr_nodes)
         if feature_type == 'one_hot':
-            features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
-                                                          dict_node_classes)
+            if masking:
+                features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
+                                                              dict_node_classes)
+            else:
+                features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
+                                                              dict_node_classes, mask_nodes=self.mask_nodes)
         elif feature_type == 'graph_based':
             features = self.make_graph_based_features(df.to_numpy(), hashmap, specific_node, len(self.classes), len(curr_nodes))
         else:
@@ -421,7 +437,7 @@ class DataProcessor:
 
         return graph
 
-    def make_train_valid_test_datasets_with_numba(self, feature_type, model_type, train_dataset_type, test_dataset_type, dataset_name, log_edge_weights=False, skip_train_val=False):
+    def make_train_valid_test_datasets_with_numba(self, feature_type, model_type, train_dataset_type, test_dataset_type, dataset_name, log_edge_weights=False, skip_train_val=False, masking=False):
 
         self.dataset_name = dataset_name
 
@@ -441,17 +457,25 @@ class DataProcessor:
                 # make training samples
                 if not skip_train_val:
                     for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
-                        curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
+                        if masking:
+                            curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes + self.mask_nodes, k)
+                        else:
+                            curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes, k)
 
-                        graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training, log_edge_weights, feature_type)
+                        graph = self.generate_graph(curr_train_nodes, specific_node, dict_node_classes, df_for_training, log_edge_weights, feature_type, masking=masking)
 
                         self.array_of_graphs_for_training.append(graph)
 
                 # make validation samples
                 if not skip_train_val:
-                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
-                                                                                   np.array(self.train_nodes),
-                                                                                   np.array(self.valid_nodes))
+                    if masking:
+                        rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                                                                                       np.array(self.train_nodes + self.mask_nodes),
+                                                                                       np.array(self.valid_nodes))
+                    else:
+                        rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                                                                                       np.array(self.train_nodes),
+                                                                                       np.array(self.valid_nodes))
                     for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples'):
                         rows_for_adding = rows_for_adding_per_node[k]
                         df_for_validation = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
@@ -461,16 +485,24 @@ class DataProcessor:
                             continue
 
                         specific_node = self.valid_nodes[k]
-                        current_valid_nodes = self.train_nodes + [specific_node]
+                        if masking:
+                            current_valid_nodes = self.train_nodes + self.mask_nodes + [specific_node]
+                        else:
+                            current_valid_nodes = self.train_nodes + [specific_node]
 
-                        graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights, feature_type)
+                        graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights, feature_type, masking=masking)
 
                         self.array_of_graphs_for_validation.append(graph)
 
                 # make testing samples
-                rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
-                                                                               np.array(self.train_nodes),
+                if masking:
+                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                                                                               np.array(self.train_nodes + self.mask_nodes),
                                                                                np.array(self.test_nodes))
+                else:
+                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                                                                                   np.array(self.train_nodes),
+                                                                                   np.array(self.test_nodes))
                 for k in tqdm(range(len(self.test_nodes)), desc='Make test samples'):
                     rows_for_adding = rows_for_adding_per_node[k]
                     df_for_testing = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
@@ -480,9 +512,12 @@ class DataProcessor:
                         continue
 
                     specific_node = self.test_nodes[k]
-                    current_test_nodes = self.train_nodes + [specific_node]
+                    if masking:
+                        current_test_nodes = self.train_nodes + self.mask_nodes + [specific_node]
+                    else:
+                        current_test_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights, feature_type)
+                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights, feature_type, masking=masking)
 
                     self.array_of_graphs_for_testing.append(graph)
 
@@ -1195,6 +1230,73 @@ class BaselineMethods:
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
         return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+        
+        
+    def initial_conditional(G, y_labeled, x_labeled, x_unlabeled):
+        probs = np.ones((len(G.nodes), len(np.unique(y_labeled))))
+
+        # one for labeled nodes
+        probs[x_labeled] = 0
+        probs[x_labeled, y_labeled] = 1
+
+        probs = probs / probs.sum(1, keepdims=1)
+
+        return probs
+    
+    def update_conditional(A, cond, x_labeled, x_unlabeled):
+
+        new_cond = A @ cond
+        new_cond[x_labeled] = cond[x_labeled]
+        new_cond = new_cond / new_cond.sum(1, keepdims=1)
+        return new_cond
+        
+    def relational_neighbor_classifier_core(self, G, threshold):
+        cond = initial_conditional(G, y_labeled, x_labeled, x_unlabeled)
+        A = nx.to_numpy_array(G)
+        diffs = []
+        diff = np.inf
+        while diff > threshold:
+            next_cond = update_conditional(A, cond, x_labeled, x_unlabeled)
+            diff = np.linalg.norm(cond[x_unlabeled] - next_cond[x_unlabeled])
+            diffs.append(diff)
+            cond = next_cond
+        return np.argmax(cond[x_unlabeled], axis=1)
+    
+        
+    def relational_neighbor_classifier(self, threshold):
+        y_pred_classes = []
+        y_pred_cluster = []
+        y_true = []
+        
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Agglomerative clustering'):
+            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
+            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+            for c in nx.connected_components(G_test_init):
+                if self.data.test_nodes[i] in c:
+                    G_test = G_test_init.subgraph(c).copy()
+            if len(G_test.nodes) == 1:
+                print('Isolated test node found, skipping!')
+                continue
+            elif len(G_test) <= len(self.data.classes):
+                print('Too few nodes!!! Skipping!!!')
+                continue
+            else:
+                
+                preds = self.relational_neighbor_classifier_core(G_test, 0.001)
+
+                ground_truth = []
+                nodes_classes = nx.get_node_attributes(G_test, name='class')
+                # print(len(G_test.nodes))
+                # print(nodes_ibd_sum)
+                for node in G_test.nodes:
+                    ground_truth.append(nodes_classes[node])
+
+                graph_test_node_list = list(G_test.nodes)
+                y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
+                y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
+
+                cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
+                y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
         
     def sklearn_label_propagation():
         print('Better for graph-based features')
