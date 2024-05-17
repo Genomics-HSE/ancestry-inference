@@ -926,43 +926,63 @@ class BaselineMethods:
             
         return mapping
     
+    def spectral_clustering_thread(self, test_node_idx):
+        current_nodes = self.data.train_nodes + [self.data.test_nodes[test_node_idx]]
+        G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+        # print(nx.number_connected_components(G_test)) ########################## check it for all datasets
+        for c in nx.connected_components(G_test_init):
+            if self.data.test_nodes[test_node_idx] in c:
+                G_test = G_test_init.subgraph(c).copy()
+        if len(G_test.nodes) == 1:
+            print('Isolated test node found, skipping!')
+            return -1, -1, -1
+        elif len(G_test) <= len(self.data.classes):
+            print('Too few nodes!!! Skipping!!!')
+            retirn -1, -1, -1
+        else:
+            L = nx.to_numpy_array(G_test)
+            # L = nx.normalized_laplacian_matrix(G_test, weight='ibd_sum' if use_weight else None) # node order like in G.nodes
+            clustering = SpectralClustering(n_clusters=int(len(self.data.classes)), assign_labels='discretize', random_state=random_state, affinity='precomputed', n_init=100).fit(L)
+            preds = clustering.labels_
+
+            ground_truth = []
+            nodes_classes = nx.get_node_attributes(G_test, name='class')
+            # print(len(G_test.nodes))
+            # print(nodes_ibd_sum)
+            for node in G_test.nodes:
+                ground_truth.append(nodes_classes[node])
+
+            graph_test_node_list = list(G_test.nodes)
+            
+            y_pred_cluster = preds[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]
+            y_true = ground_truth[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]
+
+            cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
+            y_pred_classes = cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]]
+            
+            return y_pred_classes, y_pred_cluster, y_true
+        
+    
     def spectral_clustering(self, use_weight=False, random_state=42):
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
         
-        for i in tqdm(range(len(self.data.test_nodes)), desc='Spectral clustering'):
-            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
-            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
-            # print(nx.number_connected_components(G_test)) ########################## check it for all datasets
-            for c in nx.connected_components(G_test_init):
-                if self.data.test_nodes[i] in c:
-                    G_test = G_test_init.subgraph(c).copy()
-            if len(G_test.nodes) == 1:
-                print('Isolated test node found, skipping!')
-                continue
-            elif len(G_test) <= len(self.data.classes):
-                print('Too few nodes!!! Skipping!!!')
-                continue
-            else:
-                L = nx.to_numpy_array(G_test)
-                # L = nx.normalized_laplacian_matrix(G_test, weight='ibd_sum' if use_weight else None) # node order like in G.nodes
-                clustering = SpectralClustering(n_clusters=int(len(self.data.classes)), assign_labels='discretize', random_state=random_state, affinity='precomputed', n_init=100).fit(L)
-                preds = clustering.labels_
-
-                ground_truth = []
-                nodes_classes = nx.get_node_attributes(G_test, name='class')
-                # print(len(G_test.nodes))
-                # print(nodes_ibd_sum)
-                for node in G_test.nodes:
-                    ground_truth.append(nodes_classes[node])
-
-                graph_test_node_list = list(G_test.nodes)
-                y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
-                y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
-
-                cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
-                y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
+        with Pool(os.cpu_count()) as p: # os.cpu_count()
+            res = list(tqdm(p.imap(self.spectral_clustering_thread, range(len(self.data.test_nodes))), total=len(self.data.test_nodes), desc='Spectral clustering'))
+        
+        for item in res:
+            y_pred_classes.append(item[0])
+            y_pred_cluster.append(item[1])
+            y_true.append(item[2])
+            
+        y_pred_classes = np.array(y_pred_classes)
+        y_pred_cluster = np.array(y_pred_cluster)
+        y_true = np.array(y_true)
+        
+        y_pred_classes = y_pred_classes[y_pred_classes != -1]
+        y_pred_cluster = y_pred_cluster[y_pred_cluster != -1]
+        y_true = y_true[y_true != -1]
                 
         print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
         score = f1_score(y_true, y_pred_classes, average='macro')
