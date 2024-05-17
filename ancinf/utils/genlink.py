@@ -534,7 +534,7 @@ class DataProcessor:
                 # make training samples
                 for k in tqdm(range(1), desc='Make train samples'):
 
-                    graph = self.generate_graph(self.train_nodes, -1, dict_node_classes, df_for_training, log_edge_weights, feature_type)
+                    graph = self.generate_graph(self.train_nodes, -1, dict_node_classes, df_for_training, log_edge_weights, feature_type, masking=masking )
 
                     self.array_of_graphs_for_training.append(graph)
 
@@ -553,7 +553,7 @@ class DataProcessor:
                     specific_node = self.valid_nodes[k]
                     current_valid_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights, feature_type)
+                    graph = self.generate_graph(current_valid_nodes, specific_node, dict_node_classes, df_for_validation, log_edge_weights, feature_type, masking=masking)
 
                     self.array_of_graphs_for_validation.append(graph)
 
@@ -572,7 +572,7 @@ class DataProcessor:
                     specific_node = self.test_nodes[k]
                     current_test_nodes = self.train_nodes + [specific_node]
 
-                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights, feature_type)
+                    graph = self.generate_graph(current_test_nodes, specific_node, dict_node_classes, df_for_testing, log_edge_weights, feature_type, masking=masking)
 
                     self.array_of_graphs_for_testing.append(graph)
 
