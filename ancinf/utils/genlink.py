@@ -1044,6 +1044,7 @@ class BaselineMethods:
                 G_test = G_test_init.subgraph(c).copy()
         if len(G_test.nodes) == 1:
             print('Isolated test node found, skipping!')
+            return -1, -1, -1
         else:
             comp = nx.community.girvan_newman(G_test.copy())
             for communities in itertools.islice(comp, int(len(self.data.classes))):
@@ -1093,6 +1094,14 @@ class BaselineMethods:
             y_pred_classes.append(item[0])
             y_pred_cluster.append(item[1])
             y_true.append(item[2])
+            
+        y_pred_classes = np.array(y_pred_classes)
+        y_pred_cluster = np.array(y_pred_cluster)
+        y_true = np.array(y_true)
+        
+        y_pred_classes = y_pred_classes[y_pred_classes != -1]
+        y_pred_cluster = y_pred_cluster[y_pred_cluster != -1]
+        y_true = y_true[y_true != -1]
                 
         print(f'Homogenity score: {homogeneity_score(y_true, y_pred_cluster)}')
         score = f1_score(y_true, y_pred_classes, average='macro')
