@@ -437,7 +437,7 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
             runresult = {"f1macro": runresult_old,
                      "f1weighted": 404,
                      "accuracy": 404,
-                     "classf1scores": {"class1": 404, "class2": 404 },
+                     "class_scores": {"class1": 404, "class2": 404 },
                      "time" : runtime
                     }
         
@@ -457,7 +457,7 @@ def processpartition_nn(expresults, datafile, partition, gnnlist, mlplist, comde
             runresult = {"f1macro": runresult_old,
                      "f1weighted": 404,
                      "accuracy": 404,
-                     "classf1scores": {"class1": 404, "class2": 404 },
+                     "class_scores": {"class1": 404, "class2": 404 },
                      "time" : runtime
                     }
         print("RUN COMPLETE!", mlpclass, runresult)
@@ -521,26 +521,26 @@ def compiledsresults(expresults, fullist):
         if expresults[nnclass]!=[]:
             metrics = expresults[nnclass][0]            
             for metric in metrics:
-                if metric == "classf1scores":
-                    dsres[nnclass]["classf1scores"] = {}
-                    for cl in expresults[nnclass][0]["classf1scores"]:
-                        dsres[nnclass]["classf1scores"][cl] = {} 
-                        dsres[nnclass]["classf1scores"][cl]["values"]=[]
+                if metric == "class_scores":
+                    dsres[nnclass]["class_scores"] = {}
+                    for cl in expresults[nnclass][0]["class_scores"]:
+                        dsres[nnclass]["class_scores"][cl] = {} 
+                        dsres[nnclass]["class_scores"][cl]["values"]=[]
                 else:
                     dsres[nnclass][metric]={}
                     dsres[nnclass][metric]["values"] = []                
                 
             for splitresult in expresults[nnclass]:                
                 for metric in metrics:
-                    if metric == "classf1scores":
-                        for cl in splitresult["classf1scores"]:
-                            dsres[nnclass]["classf1scores"][cl]["values"].append(splitresult["classf1scores"][cl])
+                    if metric == "class_scores":
+                        for cl in splitresult["class_scores"]:
+                            dsres[nnclass]["class_scores"][cl]["values"].append(splitresult["class_scores"][cl])
                     else:
                         dsres[nnclass][metric]["values"].append(splitresult[metric])
             #now we have all values arrays filled
             for metric in metrics:
-                if metric == "classf1scores":
-                    for cl in expresults[nnclass][0]["classf1scores"]:
+                if metric == "class_scores":
+                    for cl in expresults[nnclass][0]["class_scores"]:
                         dsres[nnclass][metric][cl]["mean"] = np.average(dsres[nnclass][metric][cl]["values"])
                         dsres[nnclass][metric][cl]["std"] = np.std(dsres[nnclass][metric][cl]["values"])
                 else:
