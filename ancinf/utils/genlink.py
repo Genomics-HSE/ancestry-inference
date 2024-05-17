@@ -1237,31 +1237,40 @@ class BaselineMethods:
         return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
         
         
-    def initial_conditional(G, y_labeled, x_labeled, x_unlabeled):
+    def initial_conditional(self, G, y_labeled, x_labeled, x_unlabeled):
         probs = np.ones((len(G.nodes), len(np.unique(y_labeled))))
-
+        
+        graph_nodes = list(G.nodes)
+        
         # one for labeled nodes
-        probs[x_labeled] = 0
-        probs[x_labeled, y_labeled] = 1
+        for i in range(len(x_labeled)):
+            probs[graph_nodes.index(x_labeled[i])] = 0
+            probs[graph_nodes.index(x_labeled[i]), y_labeled[i]] = 1
+        # probs[x_labeled] = 0
+        # probs[x_labeled, y_labeled] = 1
 
         probs = probs / probs.sum(1, keepdims=1)
 
         return probs
     
-    def update_conditional(A, cond, x_labeled, x_unlabeled):
+    def update_conditional(self, A, cond, x_labeled, x_unlabeled, G):
 
         new_cond = A @ cond
-        new_cond[x_labeled] = cond[x_labeled]
+        
+        graph_nodes = list(G.nodes)
+        for i in range(len(x_labeled)):
+            new_cond[graph_nodes.index(x_labeled[i])] = cond[[graph_nodes.index(x_labeled[i])]]
+        # new_cond[x_labeled] = cond[x_labeled]
         new_cond = new_cond / new_cond.sum(1, keepdims=1)
         return new_cond
         
     def relational_neighbor_classifier_core(self, G, threshold, x_labeled, x_unlabeled, y_labeled):
-        cond = initial_conditional(G, y_labeled, x_labeled, x_unlabeled)
+        cond = self.initial_conditional(G, y_labeled, x_labeled, x_unlabeled)
         A = nx.to_numpy_array(G)
         diffs = []
         diff = np.inf
         while diff > threshold:
-            next_cond = update_conditional(A, cond, x_labeled, x_unlabeled)
+            next_cond = self.update_conditional(A, cond, x_labeled, x_unlabeled, G)
             diff = np.linalg.norm(cond[x_unlabeled] - next_cond[x_unlabeled])
             diffs.append(diff)
             cond = next_cond
@@ -1291,7 +1300,7 @@ class BaselineMethods:
                 nodes_classes = nx.get_node_attributes(G_test, name='class')
                 for node in G_test.nodes:
                     ground_truth.append(nodes_classes[node])
-                preds = self.relational_neighbor_classifier_core(G_test, 0.001, np.array(self.data.train_nodes), np.array([self.data.test_nodes[i]]), np.array(ground_truth))
+                preds = self.relational_neighbor_classifier_core(G_test, threshold, np.array(self.data.train_nodes), np.array([self.data.test_nodes[i]]), np.array(ground_truth))
 
                 graph_test_node_list = list(G_test.nodes)
                 y_pred_cluster.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
@@ -1299,6 +1308,8 @@ class BaselineMethods:
 
                 cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
                 y_pred_classes.append(cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[i])]])
+                
+            
         
     def sklearn_label_propagation():
         print('Better for graph-based features')
