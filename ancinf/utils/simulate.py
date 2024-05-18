@@ -671,7 +671,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
                 processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu )
                 fullres, briefres = compiledsresults(expresults, fullist)                
-                datasetresults[-1] = {"brief": briefres, "full": fullres, "exp_idx": exp_idx} 
+                datasetresults[-1] = {"brief": briefres, "complete_splits": part_idx+1, "exp_idx": exp_idx, "full": fullres } 
                 
                 result[dataset] = datasetresults
                 with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
