@@ -749,7 +749,7 @@ class Trainer:
         self.weight_decay = wd
         self.loss_fn = loss_fn
         self.weight = torch.tensor([1. for i in range(len(self.data.classes))]).to(self.device) if weight is None else weight
-        self.batch_size = batch_size
+        self.batch_size = batch_size # not used by far
         self.log_dir = log_dir
         self.patience = patience
         self.num_epochs = num_epochs
