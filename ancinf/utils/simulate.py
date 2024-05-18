@@ -5,7 +5,7 @@ import numpy as np
 from os import listdir
 from os.path import isfile, join
 import os.path
-import time
+import time, datetime
 from contextlib import ExitStack
 
 
@@ -637,7 +637,8 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             
             expresults = {nnclass:[] for nnclass in fullist} 
             datasetresults.append(expresults) #({nnclass: {"mean": -1, "std": -1, "values":[]} for nnclass in fullist})
-              
+            
+            datasetstart = datetime.datetime.now().strftime("%H:%M on %d %B %Y")
         
             #1. all heuristics for all partitions at once
             if len(heurlist)>0:
@@ -679,7 +680,9 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
                 processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu )
                 fullres, briefres = compiledsresults(expresults, fullist)                
-                datasetresults[-1] = {"brief": briefres, "complete_splits": part_idx+1, "exp_idx": exp_idx, "full": fullres } 
+                datasetfinish = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
+                datasetresults[-1] = {"brief": briefres, "complete_splits": part_idx+1, "datetime_begin": datasetstart, "datetime_end": datasetfinish, 
+                                      "exp_idx": exp_idx, "full": fullres } 
                 
                 result[dataset] = datasetresults
                 with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
