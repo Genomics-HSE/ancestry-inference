@@ -62,11 +62,12 @@
     {        
         "valshare": 0.2,
         "testshare": 0.2,
-        "split_count": 3,
+        "split_count": 10,
         "log_weights": "False",
         "heuristics": [],
-        "community_detection": ["Spectral", "Agglomerative", "GirvanNewmann", "LabelPropagation","RelationalNeighbor"],
-        "mlps": [],
-        "gnns": []        
+        "community_detection": [],
+        "mlps": ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"],
+        "gnns": ["TAGConv_9l_512h_nw_k3", "TAGConv_9l_512h_nw_k3_gb"]
+        
     }
 }

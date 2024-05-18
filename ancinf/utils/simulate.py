@@ -639,7 +639,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             datasetresults.append(expresults) #({nnclass: {"mean": -1, "std": -1, "values":[]} for nnclass in fullist})
             
             datasetstart = datetime.datetime.now().strftime("%H:%M on %d %B %Y")
-        
+            datasetstarttime = time.time()
             #1. all heuristics for all partitions at once
             if len(heurlist)>0:
                 starttime = time.time()
@@ -680,8 +680,10 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
                 processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu )
                 fullres, briefres = compiledsresults(expresults, fullist)                
-                datasetfinish = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-                datasetresults[-1] = {"brief": briefres, "complete_splits": part_idx+1, "datetime_begin": datasetstart, "datetime_end": datasetfinish, 
+                datasetfinish = datetime.datetime.now().strftime("%H:%M on %d %B %Y")
+                datasetfinishtime = time.time()
+                datasetresults[-1] = {"brief": briefres, "complete_splits": part_idx+1, "dataset_begin": datasetstart, "dataset_end": datasetfinish, 
+                                      "dataset_time": datasetfinishtime - datasetstarttime,
                                       "exp_idx": exp_idx, "full": fullres } 
                 
                 result[dataset] = datasetresults
@@ -723,11 +725,11 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
             train_dataset_type = 'multiple'
         dp.make_train_valid_test_datasets_with_numba(features, 'homogeneous', train_dataset_type, 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
         trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
-                      features, 1, 1, cuda_device_specified=gpu)
+                      features, 50, 10, cuda_device_specified=gpu)
     else:#mlp        
         dp.make_train_valid_test_datasets_with_numba('graph_based', 'homogeneous', 'one', 'multiple', rundir, log_edge_weights=logweights, masking=masking)    
         trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 50,
-                      'graph_based', 10, 1, cuda_device_specified=gpu)
+                      'graph_based', 50, 10, cuda_device_specified=gpu)
     
     return trainer.run()           
 
