@@ -40,7 +40,15 @@ NNs = {
     "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
     "GCNConv_3l_128h_w": GCNConv_3l_128h_w,
     "GINNet": GINNet,
-    "AttnGCN": AttnGCN   
+    "AttnGCN": AttnGCN,
+    "TAGConv_3l_128h_w_k3_gb": TAGConv_3l_128h_w_k3,
+    "TAGConv_3l_512h_w_k3_gb": TAGConv_3l_512h_w_k3,    
+    "TAGConv_9l_512h_nw_k3_gb": TAGConv_9l_512h_nw_k3,
+    "TAGConv_9l_128h_k3_gb": TAGConv_9l_128h_k3,
+    "GCNConv_3l_128h_w_gb": GCNConv_3l_128h_w,
+    "GINNet_gb": GINNet,
+    "AttnGCN_gb": AttnGCN   
+   
 }
 
 
@@ -456,7 +464,7 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
         run_name = runbasename + "_"+gnnclass
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes)
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, gnnclass, gnn=True, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes)
         runtime = time.time() - starttime
         runresult["time"] = runtime        
         print("RUN COMPLETE!", gnnclass, runresult)        
@@ -467,7 +475,7 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
         run_name = runbasename +"_"+mlpclass
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[mlpclass], gnn=False, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, mlpclass, gnn=False, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
         runtime = time.time() - starttime
         runresult["time"] = runtime        
         print("RUN COMPLETE!", mlpclass, runresult)
@@ -704,15 +712,16 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy', mask_path = maskednodes)
     masking = not (maskednodes is None)
     if gnn:        
-        dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
-        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
-                      'one_hot', 1, 1, cuda_device_specified=gpu)
-    else:
-        #mlps
-        #print(f"Log weignts: {logweights}")
-        #dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights)    
+        if nnclass[-3:] == '_gb': 
+            features = 'graph_based'
+        else:
+            features = 'one_hot'
+        dp.make_train_valid_test_datasets_with_numba(features, 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
+        trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
+                      features, 1, 1, cuda_device_specified=gpu)
+    else:#mlp        
         dp.make_train_valid_test_datasets_with_numba('graph_based', 'homogeneous', 'one', 'multiple', rundir, log_edge_weights=logweights, masking=masking)    
-        trainer = Trainer(dp, nnclass, 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 50,
+        trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 50,
                       'graph_based', 10, 1, cuda_device_specified=gpu)
     
     return trainer.run()           
