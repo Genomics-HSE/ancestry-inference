@@ -67,7 +67,13 @@
         "heuristics": [],
         "community_detection": [],
         "mlps": [],
-        "gnns": ["TAGConv_9l_512h_nw_k3", "TAGConv_9l_512h_nw_k3_gb"]                   
+        "gnns": [   "TAGConv_9l_512h_nw_k3_gb",
+                    "TAGConv_3l_128h_w_k3_gb",
+                    "TAGConv_3l_512h_w_k3_gb",
+                    "GINNet_gb",
+                    "AttnGCN_gb",
+                    "GCNConv_3l_128h_w_gb"
+                    ] 
                     
     }
 }
