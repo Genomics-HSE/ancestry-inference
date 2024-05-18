@@ -714,9 +714,11 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
     if gnn:        
         if nnclass[-3:] == '_gb': 
             features = 'graph_based'
+            train_dataset_type = "one"
         else:
             features = 'one_hot'
-        dp.make_train_valid_test_datasets_with_numba(features, 'homogeneous', 'multiple', 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
+            train_dataset_type = 'multiple'
+        dp.make_train_valid_test_datasets_with_numba(features, 'homogeneous', train_dataset_type, 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
         trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
                       features, 1, 1, cuda_device_specified=gpu)
     else:#mlp        
