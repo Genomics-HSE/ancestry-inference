@@ -1237,7 +1237,7 @@ class BaselineMethods:
         return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
         
         
-    def initial_conditional(self, G, y_labeled, x_labeled, x_unlabeled):
+    def initial_conditional(self, G, y_labeled, x_labeled):
         probs = np.ones((len(G.nodes), len(self.data.classes)))
         
         graph_nodes = list(G.nodes)
@@ -1248,12 +1248,14 @@ class BaselineMethods:
             probs[graph_nodes.index(x_labeled[i]), y_labeled[i]] = 1
         # probs[x_labeled] = 0
         # probs[x_labeled, y_labeled] = 1
+        
+        assert np.sum(probs.sum(axis=1) > 1) == 1
 
         probs = probs / probs.sum(1, keepdims=1)
 
         return probs
     
-    def update_conditional(self, A, cond, x_labeled, x_unlabeled, graph_nodes):
+    def update_conditional(self, A, cond, x_labeled, graph_nodes):
 
         new_cond = A @ cond
     
@@ -1264,14 +1266,14 @@ class BaselineMethods:
         return new_cond
         
     def relational_neighbor_classifier_core(self, G, threshold, x_labeled, x_unlabeled, y_labeled):
-        cond = self.initial_conditional(G, y_labeled, x_labeled, x_unlabeled)
+        cond = self.initial_conditional(G, y_labeled, x_labeled)
         A = nx.to_numpy_array(G)
         diffs = []
         diff = np.inf
         graph_nodes = list(G.nodes)
         while diff > threshold:
             # print(diff)
-            next_cond = self.update_conditional(A, cond, x_labeled, x_unlabeled, graph_nodes)
+            next_cond = self.update_conditional(A, cond, x_labeled, graph_nodes)
             # print(np.all(next_cond == cond))
             diff = np.linalg.norm(cond[graph_nodes.index(x_unlabeled[0])] - next_cond[graph_nodes.index(x_unlabeled[0])])
             diffs.append(diff)
@@ -1298,13 +1300,84 @@ class BaselineMethods:
                 continue
             else:
                 
+                ground_truth_all = []
+                ground_truth_train_nodes_only = []
+                nodes_classes = nx.get_node_attributes(G_test, name='class')
+                for node in G_test.nodes:
+                    ground_truth_all.append(nodes_classes[node])
+                    if node != self.data.test_nodes[i]:
+                        ground_truth_train_nodes_only.append(nodes_classes[node])
+                cc_train_nodes = np.array(list(G_test.nodes))
+                cc_train_nodes = cc_train_nodes[cc_train_nodes != self.data.test_nodes[i]]
+                preds = self.relational_neighbor_classifier_core(G_test, threshold, cc_train_nodes, np.array([self.data.test_nodes[i]]), np.array(ground_truth_train_nodes_only)) # ground_truth contains classes for ALL nodes, includind test node
+
+                graph_test_node_list = list(G_test.nodes)
+                y_true.append(ground_truth_all[graph_test_node_list.index(self.data.test_nodes[i])])
+
+                y_pred_classes.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
+        
+        f1_macro_score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        
+        f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accuracy_score(y_true, y_pred_classes)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred_classes, average='macro', labels=[i])
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class} # skipped node count
+    
+    
+    def multi_rank_walk_core(self, G, x_labeled, x_unlabeled, y_labeled, alpha):
+        n_classes = len(self.data.classes)
+        y_pred = np.zeros((len(G), n_classes))
+        for c in range(n_classes):
+            y_pred[:, c] = self.personalized_pr(G, y_labeled, x_labeled, c, alpha)
+        return y_pred.argmax(axis=1)#[x_unlabeled]
+    
+    
+    def personalized_pr(self, G, y_labeled, x_labeled, c, alpha):
+        graph_nodes = list(G.nodes)
+        important_nodes = dict()
+        for i in range(len(y_labeled)):
+            if y_labeled[i] == c:
+                important_nodes[x_labeled[i]] = 1 / np.sum(y_labeled == c)
+        return np.array(list(nx.pagerank(G, personalization=important_nodes, alpha=alpha).values()))
+    
+    
+    def multi_rank_walk(self, alpha):
+        y_pred_classes = []
+        y_pred_cluster = []
+        y_true = []
+        
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Multi rank walk'):
+            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
+            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+            for c in nx.connected_components(G_test_init):
+                if self.data.test_nodes[i] in c:
+                    G_test = G_test_init.subgraph(c).copy()
+            if len(G_test.nodes) == 1:
+                print('Isolated test node found, skipping!')
+                continue
+            elif len(G_test) <= len(self.data.classes):
+                print('Too few nodes!!! Skipping!!!')
+                continue
+            else:
+                
                 ground_truth = []
                 nodes_classes = nx.get_node_attributes(G_test, name='class')
                 for node in G_test.nodes:
                     ground_truth.append(nodes_classes[node])
                 cc_train_nodes = np.array(list(G_test.nodes))
                 cc_train_nodes = cc_train_nodes[cc_train_nodes != self.data.test_nodes[i]]
-                preds = self.relational_neighbor_classifier_core(G_test, threshold, cc_train_nodes, np.array([self.data.test_nodes[i]]), np.array(ground_truth))
+                preds = self.multi_rank_walk_core(G_test, cc_train_nodes, np.array([self.data.test_nodes[i]]), np.array(ground_truth), alpha)
 
                 graph_test_node_list = list(G_test.nodes)
                 y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
@@ -1327,7 +1400,8 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class} # skipped node count
+        
         
     def sklearn_label_propagation():
         print('Better for graph-based features')
