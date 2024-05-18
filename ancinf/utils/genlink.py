@@ -1309,6 +1309,7 @@ class BaselineMethods:
                         ground_truth_train_nodes_only.append(nodes_classes[node])
                 cc_train_nodes = np.array(list(G_test.nodes))
                 cc_train_nodes = cc_train_nodes[cc_train_nodes != self.data.test_nodes[i]]
+                assert len(ground_truth_train_nodes_only) == len(cc_train_nodes)
                 preds = self.relational_neighbor_classifier_core(G_test, threshold, cc_train_nodes, np.array([self.data.test_nodes[i]]), np.array(ground_truth_train_nodes_only)) # ground_truth contains classes for ALL nodes, includind test node
 
                 graph_test_node_list = list(G_test.nodes)
@@ -1344,7 +1345,6 @@ class BaselineMethods:
     
     
     def personalized_pr(self, G, y_labeled, x_labeled, c, alpha):
-        graph_nodes = list(G.nodes)
         important_nodes = dict()
         for i in range(len(y_labeled)):
             if y_labeled[i] == c:
@@ -1371,16 +1371,19 @@ class BaselineMethods:
                 continue
             else:
                 
-                ground_truth = []
+                ground_truth_all = []
+                ground_truth_train_nodes_only = []
                 nodes_classes = nx.get_node_attributes(G_test, name='class')
                 for node in G_test.nodes:
-                    ground_truth.append(nodes_classes[node])
+                    ground_truth_all.append(nodes_classes[node])
+                    if node != self.data.test_nodes[i]:
+                        ground_truth_train_nodes_only.append(nodes_classes[node])
                 cc_train_nodes = np.array(list(G_test.nodes))
                 cc_train_nodes = cc_train_nodes[cc_train_nodes != self.data.test_nodes[i]]
-                preds = self.multi_rank_walk_core(G_test, cc_train_nodes, np.array([self.data.test_nodes[i]]), np.array(ground_truth), alpha)
+                preds = self.multi_rank_walk_core(G_test, cc_train_nodes, np.array([self.data.test_nodes[i]]), np.array(ground_truth_train_nodes_only), alpha)
 
                 graph_test_node_list = list(G_test.nodes)
-                y_true.append(ground_truth[graph_test_node_list.index(self.data.test_nodes[i])])
+                y_true.append(ground_truth_all[graph_test_node_list.index(self.data.test_nodes[i])])
 
                 y_pred_classes.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
         
@@ -1402,6 +1405,90 @@ class BaselineMethods:
 
         return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class} # skipped node count
         
+        
+    def tikhonov_regularization(self, G, gamma, x_labeled, y_labeled, p):
+
+        from numpy.linalg import inv
+        
+        graph_nodes = list(G.nodes)
+
+        num_nodes = G.number_of_nodes()
+
+        A = nx.adjacency_matrix(G)
+        D = np.diag(A.sum(axis=1))
+        L = D - A
+
+        L = np.linalg.matrix_power(L, p)
+        S = L
+
+        I = np.diag([1 if i in x_labeled else 0 for i in range(num_nodes)])
+
+        y = np.zeros(num_nodes)
+        y_mean = np.mean(y_labeled)
+        for i in range(len(x_labeled)):
+            y[graph_nodes.index(x_labeled[i])] = y_labeled[i] - y_mean
+
+        A = len(y_labeled) * gamma * S + I
+        A_inv = np.linalg.inv(A)
+
+        f_t = A_inv @ y
+
+        return f_t + y_mean
+        
+        
+    def ridge_regression(self, gamma, p):
+        y_pred_classes = []
+        y_pred_cluster = []
+        y_true = []
+        
+        for i in tqdm(range(len(self.data.test_nodes)), desc='Ridge regression'):
+            current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
+            G_test_init = self.data.nx_graph.subgraph(current_nodes).copy()
+            for c in nx.connected_components(G_test_init):
+                if self.data.test_nodes[i] in c:
+                    G_test = G_test_init.subgraph(c).copy()
+            if len(G_test.nodes) == 1:
+                print('Isolated test node found, skipping!')
+                continue
+            elif len(G_test) <= len(self.data.classes):
+                print('Too few nodes!!! Skipping!!!')
+                continue
+            else:
+                
+                ground_truth_all = []
+                ground_truth_train_nodes_only = []
+                nodes_classes = nx.get_node_attributes(G_test, name='class')
+                for node in G_test.nodes:
+                    ground_truth_all.append(nodes_classes[node])
+                    if node != self.data.test_nodes[i]:
+                        ground_truth_train_nodes_only.append(nodes_classes[node])
+                cc_train_nodes = np.array(list(G_test.nodes))
+                cc_train_nodes = cc_train_nodes[cc_train_nodes != self.data.test_nodes[i]]
+                preds = np.round(self.tikhonov_regularization(G_test, gamma, cc_train_nodes, np.array(ground_truth_train_nodes_only), p)).astype(int)
+
+                graph_test_node_list = list(G_test.nodes)
+                y_true.append(ground_truth_all[graph_test_node_list.index(self.data.test_nodes[i])])
+
+                y_pred_classes.append(preds[graph_test_node_list.index(self.data.test_nodes[i])])
+        
+        f1_macro_score = f1_score(y_true, y_pred_classes, average='macro')
+        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        
+        f1_weighted_score = f1_score(y_true, y_pred_classes, average='weighted')
+        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        
+        acc = accuracy_score(y_true, y_pred_classes)
+        print(f"accuracy score on test dataset: {acc}")
+        
+        f1_macro_score_per_class = dict()
+        
+        for i in range(len(self.data.classes)):
+            score_per_class = f1_score(y_true, y_pred_classes, average='macro', labels=[i])
+            print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+            f1_macro_score_per_class[self.data.classes[i]] = score_per_class
+
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class} # skipped node count
+    
         
     def sklearn_label_propagation():
         print('Better for graph-based features')
