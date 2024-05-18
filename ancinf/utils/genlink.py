@@ -534,7 +534,7 @@ class DataProcessor:
                 # make training samples
                 for k in tqdm(range(1), desc='Make train samples'):
 
-                    graph = self.generate_graph(self.train_nodes, -1, dict_node_classes, df_for_training, log_edge_weights, feature_type, masking=masking )
+                    graph = self.generate_graph(self.train_nodes, -1, dict_node_classes, df_for_training, log_edge_weights, feature_type, masking=masking)
 
                     self.array_of_graphs_for_training.append(graph)
 
@@ -1238,7 +1238,7 @@ class BaselineMethods:
         
         
     def initial_conditional(self, G, y_labeled, x_labeled, x_unlabeled):
-        probs = np.ones((len(G.nodes), len(np.unique(y_labeled))))
+        probs = np.ones((len(G.nodes), len(self.data.classes)))
         
         graph_nodes = list(G.nodes)
         
