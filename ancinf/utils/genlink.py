@@ -837,7 +837,7 @@ class Trainer:
             sns.heatmap(cm, annot=True, fmt=".2f", ax=ax)
             plt.show()
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': len(self.test_nodes) - len(self.data.array_of_graphs_for_testing)}
         
 
     def run(self):
@@ -971,7 +971,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': len(self.test_nodes) - len(self.data.array_of_graphs_for_testing)}
     
     def map_cluster_labels_with_target_classes(self, cluster_labels, target_labels):
         # vouter algorithm
@@ -999,10 +999,10 @@ class BaselineMethods:
                 G_test = G_test_init.subgraph(c).copy()
         if len(G_test.nodes) == 1:
             print('Isolated test node found, skipping!')
-            return -1, -1, -1
+            return -1, -1, -1, 1
         elif len(G_test) <= len(self.data.classes):
             print('Too few nodes!!! Skipping!!!')
-            return -1, -1, -1
+            return -1, -1, -1, 1
         else:
             L = nx.to_numpy_array(G_test)
             # L = nx.normalized_laplacian_matrix(G_test, weight='ibd_sum' if use_weight else None) # node order like in G.nodes
@@ -1024,13 +1024,14 @@ class BaselineMethods:
             cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
             y_pred_classes = cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]]
             
-            return y_pred_classes, y_pred_cluster, y_true
+            return y_pred_classes, y_pred_cluster, y_true, 0
         
     
     def spectral_clustering(self, use_weight=False, random_state=42):
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
+        skipped_nodes = []
         
         with Pool(os.cpu_count()) as p: # os.cpu_count()
             res = list(tqdm(p.imap(self.spectral_clustering_thread, range(len(self.data.test_nodes))), total=len(self.data.test_nodes), desc='Spectral clustering'))
@@ -1039,6 +1040,7 @@ class BaselineMethods:
             y_pred_classes.append(item[0])
             y_pred_cluster.append(item[1])
             y_true.append(item[2])
+            skipped_nodes.append(item[3])
             
         y_pred_classes = np.array(y_pred_classes)
         y_pred_cluster = np.array(y_pred_cluster)
@@ -1066,7 +1068,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': np.sum(skipped_nodes)}
     
     
     def simrank_distance(self, G):
@@ -1096,6 +1098,7 @@ class BaselineMethods:
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
+        skipped_nodes = 0
         
         for i in tqdm(range(len(self.data.test_nodes)), desc='Agglomerative clustering'):
             current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
@@ -1105,9 +1108,11 @@ class BaselineMethods:
                     G_test = G_test_init.subgraph(c).copy()
             if len(G_test.nodes) == 1:
                 print('Isolated test node found, skipping!')
+                skipped_nodes += 1
                 continue
             elif len(G_test) <= len(self.data.classes):
                 print('Too few nodes!!! Skipping!!!')
+                skipped_nodes += 1
                 continue
             else:
                 # print(len(G_test))
@@ -1146,7 +1151,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': skipped_nodes}
     
     def girvan_newman_thread(self, test_node_idx):
 
@@ -1157,7 +1162,7 @@ class BaselineMethods:
                 G_test = G_test_init.subgraph(c).copy()
         if len(G_test.nodes) == 1:
             print('Isolated test node found, skipping!')
-            return -1, -1, -1
+            return -1, -1, -1, 1
         else:
             comp = nx.community.girvan_newman(G_test.copy())
             for communities in itertools.islice(comp, int(len(self.data.classes))):
@@ -1192,13 +1197,14 @@ class BaselineMethods:
             cluster2target_mapping = self.map_cluster_labels_with_target_classes(preds, ground_truth)
             y_pred_classes = cluster2target_mapping[preds[graph_test_node_list.index(self.data.test_nodes[test_node_idx])]]
             
-            return y_pred_classes, y_pred_cluster, y_true
+            return y_pred_classes, y_pred_cluster, y_true, 0
 
     
     def girvan_newman(self):
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
+        skipped_nodes = []
         
         with Pool(os.cpu_count()) as p: # os.cpu_count()
             res = list(tqdm(p.imap(self.girvan_newman_thread, range(len(self.data.test_nodes))), total=len(self.data.test_nodes), desc='Girvan-Newman'))
@@ -1207,6 +1213,7 @@ class BaselineMethods:
             y_pred_classes.append(item[0])
             y_pred_cluster.append(item[1])
             y_true.append(item[2])
+            skipped_nodes.append(item[3])
             
         y_pred_classes = np.array(y_pred_classes)
         y_pred_cluster = np.array(y_pred_cluster)
@@ -1234,7 +1241,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': np.sum(skipped_nodes)}
         
         
     def initial_conditional(self, G, y_labeled, x_labeled):
@@ -1285,6 +1292,7 @@ class BaselineMethods:
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
+        skipped_nodes = 0
         
         for i in tqdm(range(len(self.data.test_nodes)), desc='Relational classifier'):
             current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
@@ -1294,9 +1302,11 @@ class BaselineMethods:
                     G_test = G_test_init.subgraph(c).copy()
             if len(G_test.nodes) == 1:
                 print('Isolated test node found, skipping!')
+                skipped_nodes += 1
                 continue
             elif len(G_test) <= len(self.data.classes):
                 print('Too few nodes!!! Skipping!!!')
+                skipped_nodes += 1
                 continue
             else:
                 
@@ -1333,7 +1343,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class} # skipped node count
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': skipped_nodes} 
     
     
     def multi_rank_walk_core(self, G, x_labeled, x_unlabeled, y_labeled, alpha):
@@ -1356,6 +1366,7 @@ class BaselineMethods:
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
+        skipped_nodes = 0
         
         for i in tqdm(range(len(self.data.test_nodes)), desc='Multi rank walk'):
             current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
@@ -1365,9 +1376,11 @@ class BaselineMethods:
                     G_test = G_test_init.subgraph(c).copy()
             if len(G_test.nodes) == 1:
                 print('Isolated test node found, skipping!')
+                skipped_nodes += 1
                 continue
             elif len(G_test) <= len(self.data.classes):
                 print('Too few nodes!!! Skipping!!!')
+                skipped_nodes += 1
                 continue
             else:
                 
@@ -1403,7 +1416,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class} # skipped node count
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': skipped_nodes}
         
         
     def tikhonov_regularization(self, G, gamma, x_labeled, y_labeled, p):
@@ -1440,6 +1453,7 @@ class BaselineMethods:
         y_pred_classes = []
         y_pred_cluster = []
         y_true = []
+        skipped_nodes = 0
         
         for i in tqdm(range(len(self.data.test_nodes)), desc='Ridge regression'):
             current_nodes = self.data.train_nodes + [self.data.test_nodes[i]]
@@ -1449,9 +1463,11 @@ class BaselineMethods:
                     G_test = G_test_init.subgraph(c).copy()
             if len(G_test.nodes) == 1:
                 print('Isolated test node found, skipping!')
+                skipped_nodes += 1
                 continue
             elif len(G_test) <= len(self.data.classes):
                 print('Too few nodes!!! Skipping!!!')
+                skipped_nodes += 1
                 continue
             else:
                 
@@ -1487,7 +1503,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class} # skipped node count
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': skipped_nodes}
     
         
     def sklearn_label_propagation():
