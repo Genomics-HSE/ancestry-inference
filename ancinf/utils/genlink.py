@@ -1339,7 +1339,7 @@ class BaselineMethods:
 class TAGConv_3l_128h_w_k3(torch.nn.Module):
     def __init__(self, data):
         super(TAGConv_3l_128h_w_k3, self).__init__()
-        self.conv1 = TAGConv(int(data.num_classes), 128)
+        self.conv1 = TAGConv(data.num_features, 128)
         self.conv2 = TAGConv(128, 128)
         self.conv3 = TAGConv(128, int(data.num_classes))
 
@@ -1354,7 +1354,7 @@ class TAGConv_3l_128h_w_k3(torch.nn.Module):
 class TAGConv_3l_512h_w_k3(torch.nn.Module):
     def __init__(self, data):
         super(TAGConv_3l_512h_w_k3, self).__init__()
-        self.conv1 = TAGConv(int(data.num_classes), 512)
+        self.conv1 = TAGConv(data.num_features, 512)
         self.conv2 = TAGConv(512, 512)
         self.conv3 = TAGConv(512, int(data.num_classes))
 
@@ -1862,8 +1862,9 @@ class AttnGCN(torch.nn.Module):
         self.dp = 0.2
 
         n_class = int(data.num_classes)
+        init_dim = data.num_features
 
-        self.conv1 = GATv2Conv(in_channels=n_class,
+        self.conv1 = GATv2Conv(in_channels=init_dim,
                                out_channels=n_features,
                                heads=n_heads,
                                edge_dim=1,
@@ -1978,11 +1979,12 @@ class GINNet(torch.nn.Module):
     def __init__(self, data):
         super(GINNet, self).__init__()
         n_class = int(data.num_classes)
+        init_dim = data.num_features
         hidden_dim = 128
         # GIN Convolution Layer
         self.conv1 = GINConv(
             nn=torch.nn.Sequential(
-                torch.nn.Linear(n_class, hidden_dim),
+                torch.nn.Linear(init_dim, hidden_dim),
                 torch.nn.BatchNorm1d(hidden_dim),
                 torch.nn.ReLU(),
                 torch.nn.Linear(hidden_dim, hidden_dim),
