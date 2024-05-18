@@ -1,0 +1,72 @@
+{
+    "datasets": {
+        "Arrakis": {
+            "edge_probability": [
+                [
+                    0.3,
+                    0
+                ],
+                [
+                    0,
+                    0.4
+                ]
+            ],
+            "mean_weight": [
+                [
+                    20.0,
+                    -1.0
+                ],
+                [
+                    -1.0,
+                    20.0
+                ]
+            ],
+            "pop_names": [
+                "Atreides",
+                "Sandworm"
+            ],
+            "pop_sizes": [
+                100,
+                100
+            ]
+        }
+    },
+    "experiments": {
+        "all_edge_probability_scale": [
+            1
+        ],
+        "all_weight_scale": [
+            1
+        ],
+        "nondg_edge_probability_scale": [
+            1
+        ],
+        "nondg_weight_scale": [
+            1
+        ],
+        "diag_edge_probability_scale": [
+            1.0
+        ],
+        "diag_weight_scale": [
+            1
+        ],
+        "population_scale": [
+            1.0
+        ]
+    },
+    "simulator": {
+        "offset": 8.0,
+        "type": "exponential"
+    },
+    "crossvalidation":
+    {        
+        "valshare": 0.2,
+        "testshare": 0.2,
+        "split_count": 3,
+        "log_weights": "False",
+        "heuristics": [],
+        "community_detection": ["Spectral", "Agglomerative", "GirvanNewmann", "LabelPropagation","RelationalNeighbor"],
+        "mlps": [],
+        "gnns": []        
+    }
+}

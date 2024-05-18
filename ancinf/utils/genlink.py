@@ -915,7 +915,7 @@ class Trainer:
         
 
 
-def independent_test(model_path, model_cls, df, vertex_id):
+def independent_test(model_path, model_cls, df, vertex_id, gpu_id):
     
     dp = DataProcessor(df.copy(), is_path_object=True)
     dp.classes.remove('unknown')
@@ -927,7 +927,7 @@ def independent_test(model_path, model_cls, df, vertex_id):
     dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy')
     dp.make_train_valid_test_datasets_with_numba('one_hot', 'homogeneous', 'multiple', 'multiple', 'debug_debug', skip_train_val=True)
     
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else 'cpu')
     model = model_cls(dp.array_of_graphs_for_testing[0]).to(device)
     model.load_state_dict(torch.load(model_path))
     model.eval()

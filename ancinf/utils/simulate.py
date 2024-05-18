@@ -450,47 +450,30 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
     test_split = np.array(test_list)
     if not(maskednodes is None):
         maskednodes = np.array(maskednodes)
-        
+    
+    #gnn
     for gnnclass in gnnlist:
         run_name = runbasename + "_"+gnnclass
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[gnnclass], gnn=True, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes)
         runtime = time.time() - starttime
-        if type(runresult_old) is dict:
-            runresult = runresult_old
-            runresult["time"] = runtime
-        else:
-            runresult = {"f1macro": runresult_old,
-                     "f1weighted": 404,
-                     "accuracy": 404,
-                     "class_scores": {"class1": 404, "class2": 404 },
-                     "time" : runtime
-                    }
-        
+        runresult["time"] = runtime        
         print("RUN COMPLETE!", gnnclass, runresult)        
         expresults[gnnclass].append(runresult)
 
+    #mlp
     for mlpclass in mlplist:
         run_name = runbasename +"_"+mlpclass
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult_old = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[mlpclass], gnn=False, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, NNs[mlpclass], gnn=False, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
         runtime = time.time() - starttime
-        if type(runresult_old) is dict:
-            runresult = runresult_old
-            runresult["time"] = runtime
-        else:
-            runresult = {"f1macro": runresult_old,
-                     "f1weighted": 404,
-                     "accuracy": 404,
-                     "class_scores": {"class1": 404, "class2": 404 },
-                     "time" : runtime
-                    }
+        runresult["time"] = runtime        
         print("RUN COMPLETE!", mlpclass, runresult)
         expresults[mlpclass].append(runresult)
 
-    #TODO use prepared split, implement girvan-newmann
+    #community detection
     if comdetlist!=[]:        
         for comdet in comdetlist:
             starttime = time.time()
@@ -539,7 +522,7 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
         inferredlabels = []
         for node in cleannodes:
             print("infering class for node", node)
-            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node ) #Todo add gpu
+            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node, gpu ) 
             print("clean test classification", testresult)
             inferredlabels.append( testresult )
         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
@@ -548,8 +531,10 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
         
 def compiledsresults(expresults, fullist):
     dsres = {}
+    dsbrief = {}
     for nnclass in fullist:
         dsres[nnclass] = {}
+        dsbrief[nnclass] = {}
         if expresults[nnclass]!=[]:
             metrics = expresults[nnclass][0]            
             for metric in metrics:
@@ -577,9 +562,10 @@ def compiledsresults(expresults, fullist):
                         dsres[nnclass][metric][cl]["std"] = np.std(dsres[nnclass][metric][cl]["values"])
                 else:
                     dsres[nnclass][metric]["mean"] = np.average(dsres[nnclass][metric]["values"])
-                    dsres[nnclass][metric]["std"] = np.std(dsres[nnclass][metric]["values"])
-                                                                          
-    return dsres
+                    dsres[nnclass][metric]["std"] = np.std(dsres[nnclass][metric]["values"])            
+            for metric in ["f1_macro", "time"]:                
+                dsbrief[nnclass][metric] = dsres[nnclass][metric]["mean"]
+    return dsres, dsbrief
 
 
 
@@ -653,7 +639,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 #save only selected by user
                 #TODO update to new format
                 for heurclass in heurlist: 
-                    expresults[heurclass] = [ {"f1macro": res, 
+                    expresults[heurclass] = [ {"f1_macro": res, 
                                                "time": runtime/len(heuresult[heurclass]["values"]) 
                                               } for res in heuresult[heurclass]["values"] ]
             #2. GNNs and MLPs partition by partition
@@ -684,8 +670,9 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 print(f"=========== Run {runidx} of {totalruncount} ======================")
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
                 processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu )
-                datasetresults[-1] = compiledsresults(expresults, fullist)                
-                datasetresults[-1]["exp_idx"] = exp_idx
+                fullres, briefres = compiledsresults(expresults, fullist)                
+                datasetresults[-1] = {"brief": briefres, "full": fullres, "exp_idx": exp_idx} 
+                
                 result[dataset] = datasetresults
                 with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
                     json.dump(result, f, indent=4, sort_keys=True)  
@@ -696,9 +683,10 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                     print("Running clean inference test")                
                     runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu)  
                     for nnclass in cleanexpresults:
-                        datasetresults[-1][nnclass]["f1macro"].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
+                        datasetresults[-1]["full"][nnclass]["f1macro"].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
                                              "clean_std": np.std(cleanexpresults[nnclass]), 
                                              "clean_values":cleanexpresults[nnclass]} )                        
+                        datasetresults[-1]["brief"][nnclass]["f1macro_clean"] = np.average(cleanexpresults[nnclass])
                     result[dataset] = datasetresults
                     with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
                         json.dump(result, f, indent=4, sort_keys=True)

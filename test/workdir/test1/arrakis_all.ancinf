@@ -19,16 +19,18 @@
         "valshare": 0.2,
         "testshare": 0.2,
         "split_count": 3,
-        "log_weights": "True",
+        "log_weights": "False",
         "heuristics": ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"],
-        "community_detection": ["Spectral", "Agglomerative", "Girvan-Newman", "LabelPropagation"],
+        "community_detection": ["Spectral", "Agglomerative", "GirvanNewmann", "LabelPropagation", "RelationalNeighbor"],
         "mlps": ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"],
         "gnns": ["TAGConv_9l_512h_nw_k3",
-                    "TAGConv_9l_128h_k3",
+                    "TAGConv_9l_128h_k3",                    
+                    "TAGConv_3l_128h_w_k3",
+                    "TAGConv_3l_512h_w_k3",
                     "GINNet",
                     "AttnGCN",
-                    "TAGConv_3l_128h_w_k3",
-                    "TAGConv_3l_512h_w_k3"]        
+                    "GCNConv_3l_128h_w"
+                    ]             
     },
     "datasets":
     {        
