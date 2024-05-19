@@ -25,7 +25,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.semi_supervised import LabelPropagation
 from sklearn.neighbors import KNeighborsClassifier
-from scipy.stats import bernoulli, expon
+from scipy.stats import bernoulli, expon, norm
 from sklearn.model_selection import train_test_split
 from torch_geometric.utils.convert import from_networkx
 from torch_geometric.data import InMemoryDataset, Data
@@ -290,7 +290,161 @@ class DataProcessor:
         if not (type(self.train_nodes) == list and type(self.valid_nodes) == list and type(self.test_nodes) == list):
             raise Exception('Node ids must be stored in Python lists!')
         if len(set(self.train_nodes + self.valid_nodes + self.test_nodes)) < (len(self.train_nodes) + len(self.valid_nodes) + len(self.test_nodes)):
-            print('There is intersection between train, valid and test node sets!') #####################################################################################################################################################################################################
+            print('There is intersection between train, valid and test node sets!') 
+            
+    def number_of_multi_edges(self, G):
+        s = []
+        for a, b in list(G.edges):
+            if a < b:
+                ts = f'{a},{b}'
+            else:
+                ts = f'{b},{a}'
+            s.append(ts)
+        df = pd.DataFrame(s)
+        c = df.pivot_table(index = 0, aggfunc ='size')
+
+        counter = 0
+        for i in range(c.shape[0]):
+            if c.iloc[i] > 1:
+                counter += 1
+        return counter
+            
+    def get_graph_features(self, fig_path, fig_size, picture_only=False):
+        features = dict()
+        
+        G = self.nx_graph
+        
+        if not picture_only:
+        
+            features['Number of nodes'] = G.number_of_nodes()
+            features['Number of edges'] = G.number_of_edges()
+            features['Density'] = nx.density(G)
+            features['Self-loop edges'] = list(nx.selfloop_edges(G))
+            features['Is connected'] = nx.is_connected(G)
+            features['Number of cc'] = nx.number_connected_components(G)
+            features['Number of isolated nodes'] = nx.number_of_isolates(G)
+            features['Is planar'] = nx.is_planar(G)
+
+            if features['Number of cc'] > 1:
+                G = G.subgraph(max(nx.connected_components(G))).copy()
+                mapping = {on:f'{nn}' for nn, on in enumerate(G.nodes())}
+                G = nx.relabel_nodes(G, mapping)
+                features['Number of nodes in largest cc'] = G.number_of_nodes()
+
+            features['Diameter'] = nx.diameter(G)
+            features['Radius'] = nx.radius(G)
+            features['Transitivity'] = nx.transitivity(G)
+            features['Number of multi edges'] = self.number_of_multi_edges(G)
+
+            degrees_of_G = [d for node, d in G.degree()]
+            features['Max degree'] = np.max(degrees_of_G)
+            features['Mean degree'] = np.mean(degrees_of_G)
+            features['Min degree'] = np.min(degrees_of_G)
+
+            features['Global efficiency'] = nx.global_efficiency(G)
+            features['Local efficiency'] = nx.local_efficiency(G)
+            features['Degree assortativity coefficient'] = nx.degree_assortativity_coefficient(G)
+            features['Class assortativity coefficient'] = nx.attribute_assortativity_coefficient(G, "class")
+            features['Average clustering'] = nx.average_clustering(G)
+            features['Center'] = list(nx.center(G))
+            features['Periphery'] = nx.periphery(G)
+            features['Is Eulerian'] = nx.is_eulerian(G)
+            features['Is semi-Eulerian'] = nx.is_semieulerian(G)
+            features['Is regular'] = nx.is_regular(G)
+            features['Average shortest path length'] = nx.average_shortest_path_length(G)
+            features['Is tree'] = nx.is_tree(G)
+            features['Is forest'] = nx.is_forest(G)
+            
+            cd = nx.degree_centrality(G)
+            cda = []
+            for i in range(G.number_of_nodes()):
+                cda.append(cd[f'{i}'])
+
+            cda = np.array(cda)
+            features['Max degree centrality'] = np.max(cda)
+            features['Mean degree centrality'] = np.mean(cda)
+            features['Min degree centrality'] = np.min(cda)
+            
+            ce = nx.eigenvector_centrality(G)
+            cea = []
+            for i in range(G.number_of_nodes()):
+                cea.append(ce[f'{i}'])
+
+            cea = np.array(cea)
+            features['Max eigenvector centrality'] = np.max(cea)
+            features['Mean eigenvector centrality'] = np.mean(cea)
+            features['Min eigenvector centrality'] = np.min(cea)
+            
+            ccl = nx.closeness_centrality(G)
+            ccla = []
+            for i in range(G.number_of_nodes()):
+                ccla.append(ccl[f'{i}'])
+
+            ccla = np.array(ccla)
+            features['Max closeness centrality'] = np.max(ccla)
+            features['Mean closeness centrality'] = np.mean(ccla)
+            features['Min closeness centrality'] = np.min(ccla)
+            
+            cb = nx.betweenness_centrality(G)
+            cba = []
+            for i in range(G.number_of_nodes()):
+                cba.append(cb[f'{i}'])
+
+            cba = np.array(cba)
+            features['Max betweenness centrality'] = np.max(cba)
+            features['Mean betweenness centrality'] = np.mean(cba)
+            features['Min betweenness centrality'] = np.min(cba)
+            
+#             ck = nx.katz_centrality(G)
+#             cka = []
+#             for i in range(G.number_of_nodes()):
+#                 cka.append(ck[f'{i}'])
+
+#             cka = np.array(cka)
+#             features['Max katz centrality'] = np.max(cka)
+#             features['Mean katz centrality'] = np.mean(cka)
+#             features['Min katz centrality'] = np.min(cka)
+
+            features['PageRank'] = nx.pagerank(G, alpha=0.8)
+        
+        cc = []
+        for i in range(G.number_of_nodes()):
+            cc.append(nx.clustering(G,f'{i}'))
+            
+        plt.clf()
+        img, ax = plt.subplots(1, 1, figsize=fig_size)
+        ax.set_title('Distribution of clustering coefficient')
+        n, bins, patches = ax.hist(cc, bins=100, color='#69b3a2', edgecolor='white', linewidth=1.2)
+        ax.set_xlabel('Clustering coefficient')
+        ax.set_ylabel('Number of nodes')
+        plt.savefig(f'{fig_path}clustering_dist.pdf', bbox_inches="tight")
+        plt.show()
+        
+        
+        plt.clf()
+        img, ax = plt.subplots(1, 1, figsize=fig_size)
+        # best fit of data
+        (mu, sigma) = norm.fit(degrees_of_G)
+
+        # the histogram of the data
+        n, bins, patches = ax.hist(degrees_of_G, bins=100, density=True, label='observed', color='#69b3a2', edgecolor='white', linewidth=1.2)
+
+        # add a 'best fit' line
+        y = norm.pdf(bins, mu, sigma)
+        l = ax.plot(bins, y, 'r--', linewidth=2, label='approximation')
+
+        #plot
+        ax.set_xlabel('Degree of node')
+        ax.set_ylabel('Probability of degree')
+        # plt.title(r'$\mathrm{Histogram\ of\ IQ:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
+        # plt.grid(True)
+        ax.legend(fontsize="10")
+        plt.savefig(f'{fig_path}deg_dist_approx.pdf', bbox_inches="tight")
+
+        plt.show()
+        
+        return features
+            #####################################################################################################################################################################################################
 
     def place_specific_node_to_the_end(self, node_list, node_id):
         curr_node = node_list[node_id]
