@@ -43,7 +43,7 @@ def visualize_classifier_data(data, sort_bars=False, annotate=False):
             plt.figure(figsize=(10, 6))
             sns.set(style="whitegrid")
 
-            bar_plot = sns.barplot(x='Classifier', y='Mean', data=df, ci=None)  # , palette="viridis")
+            bar_plot = sns.barplot(x='Classifier', y='Mean', data=df, ci=None, color='#69b3a2')  # , palette="viridis")
 
             # Adding error bars
             for i, (mean, std) in enumerate(zip(df['Mean'], df['StdDev'])):
