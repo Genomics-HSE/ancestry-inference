@@ -470,7 +470,7 @@ class DataProcessor:
         for n in all_nodes:
             if n in specific_nodes:
                 features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
-            elif mask_nodes is not None:
+            if mask_nodes is not None:
                 if n in mask_nodes:
                     features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
                 else:
@@ -590,7 +590,7 @@ class DataProcessor:
              'weight': torch.log(torch.tensor(weighted_edges[:, 2])) if log_edge_weights else torch.tensor(weighted_edges[:, 2]),
              'edge_index': torch.tensor(weighted_edges[:, :2].T, dtype=torch.long)})
 
-        graph.num_classes = len(self.classes)
+        graph.num_classes = len(self.classes) - 1 if masking else len(self.classes)
 
         return graph
 
