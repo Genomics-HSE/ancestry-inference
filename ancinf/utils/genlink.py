@@ -436,7 +436,7 @@ class DataProcessor:
         #plot
         ax.set_xlabel('Degree of node')
         ax.set_ylabel('Probability of degree')
-        # plt.title(r'$\mathrm{Histogram\ of\ IQ:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
+        plt.title(r'$\mathrm{Histogram\ of\ degree\ dist:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
         # plt.grid(True)
         ax.legend(fontsize="10")
         plt.savefig(f'{fig_path}deg_dist_approx.pdf', bbox_inches="tight")
