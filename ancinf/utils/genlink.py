@@ -721,11 +721,11 @@ class DataProcessor:
 
                 # make validation samples
                 if masking:
-                        rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                        np.array(self.train_nodes + self.mask_nodes),
                                                                                        np.array(self.valid_nodes))
-                    else:
-                        rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                else:
+                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                        np.array(self.train_nodes),
                                                                                        np.array(self.valid_nodes))
                 for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples'):
@@ -748,11 +748,11 @@ class DataProcessor:
 
                 # make testing samples
                 if masking:
-                        rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                        np.array(self.train_nodes + self.mask_nodes),
                                                                                        np.array(self.test_nodes))
-                    else:
-                        rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
+                else:
+                    rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                        np.array(self.train_nodes),
                                                                                        np.array(self.test_nodes))
                 for k in tqdm(range(len(self.test_nodes)), desc='Make test samples'):
@@ -2450,7 +2450,7 @@ class GINNet(torch.nn.Module):
     
     
     
-class GINNet_narrow_short(torch.nn.Module):
+class GINNet_narrow_short(torch.nn.Module): 
     def __init__(self, data, num_layers=3, hidden_dim=128):
         super(GINNet_narrow_short, self).__init__()
         
