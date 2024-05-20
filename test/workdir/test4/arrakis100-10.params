@@ -76,7 +76,7 @@
                     "TAGConv_3l_128h_w_k3_gb",
                     "TAGConv_3l_512h_w_k3_gb",
                     "GCNConv_3l_128h_w",
-                    "GCNConv_3l_128h_w_gb"
+                    "GCNConv_3l_128h_w_gb",
                     "GINNet",
                     "GINNet_narrow_short", 
                     "GINNet_wide_short", 

@@ -27,8 +27,10 @@ from sklearn.metrics import f1_score
 from .genlink import DataProcessor, BaselineMethods, NullSimulator, Trainer,  TAGConv_3l_128h_w_k3, \
                   TAGConv_3l_512h_w_k3, GINNet, AttnGCN, TAGConv_9l_128h_k3, GCNConv_3l_128h_w, \
                   TAGConv_9l_512h_nw_k3, MLP_3l_128h, MLP_3l_512h, MLP_9l_128h,\
-                  MLP_9l_512h
-
+                  MLP_9l_512h, \
+GINNet_narrow_short, GINNet_wide_short, GINNet_narrow_long, GINNet_wide_long, \
+AttnGCN_narrow_short, AttnGCN_wide_short, AttnGCN_narrow_long,  AttnGCN_wide_long
+    
 NNs = {
     "MLP_3l_128h": MLP_3l_128h,
     "MLP_3l_512h": MLP_3l_512h,
