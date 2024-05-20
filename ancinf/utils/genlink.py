@@ -11,6 +11,7 @@ import networkx as nx
 import torch.nn as nn
 from sklearn import metrics
 from multiprocessing import Pool
+from collections import OrderedDict
 from numba import njit, prange
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
@@ -1060,7 +1061,7 @@ class Trainer:
             sns.heatmap(cm, annot=True, fmt=".2f", ax=ax)
             plt.show()
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': len(self.test_nodes) - len(self.data.array_of_graphs_for_testing)}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': len(self.data.test_nodes) - len(self.data.array_of_graphs_for_testing)}
         
 
     def run(self):
@@ -1138,7 +1139,7 @@ class Trainer:
                         if self.patience_counter == self.patience:
                             break
                         if i % self.evaluation_steps == 0:
-                            y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training)
+                            y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training, phase='training')
 
                             print('Training report')
                             print(classification_report(y_true, y_pred))
@@ -2448,6 +2449,22 @@ class GINNet(torch.nn.Module):
 
 ####################################################################################################################################################
     
+class SequentialMultiplierArgs(nn.Sequential):
+    def forward(self, *inputs):
+        x, y = inputs
+        for module in self._modules.values():
+            x = module(x, y)
+        return x
+    
+class SequentialMultiplierArgsNext(nn.Sequential):
+    def forward(self, *inputs):
+        x, y, z = inputs
+        for name, module in self._modules.items():
+            if name[0] == 'c':
+                x = module(x, y, z)
+            else:
+                x = module(x)
+        return x
     
     
 class GINNet_narrow_short(torch.nn.Module): 
@@ -2486,7 +2503,7 @@ class GINNet_narrow_short(torch.nn.Module):
                     eps=0.0
                 )
             )
-        self.convs = torch.nn.Sequential(*convs)
+        self.convs = SequentialMultiplierArgs(*convs)
         self.fc = torch.nn.Linear(hidden_dim, n_class)
 
     def forward(self, data):
@@ -2533,7 +2550,7 @@ class GINNet_wide_short(torch.nn.Module):
                     eps=0.0
                 )
             )
-        self.convs = torch.nn.Sequential(*convs)
+        self.convs = SequentialMultiplierArgs(*convs)
         self.fc = torch.nn.Linear(hidden_dim, n_class)
 
     def forward(self, data):
@@ -2580,7 +2597,7 @@ class GINNet_narrow_long(torch.nn.Module):
                     eps=0.0
                 )
             )
-        self.convs = torch.nn.Sequential(*convs)
+        self.convs = SequentialMultiplierArgs(*convs)
         self.fc = torch.nn.Linear(hidden_dim, n_class)
 
     def forward(self, data):
@@ -2593,7 +2610,7 @@ class GINNet_narrow_long(torch.nn.Module):
     
 class GINNet_wide_long(torch.nn.Module):
     def __init__(self, data, num_layers=9, hidden_dim=512):
-        super(GINNet_narrow_long, self).__init__()
+        super(GINNet_wide_long, self).__init__()
         
         n_class = int(data.num_classes)
         init_dim = data.num_features
@@ -2627,7 +2644,7 @@ class GINNet_wide_long(torch.nn.Module):
                     eps=0.0
                 )
             )
-        self.convs = torch.nn.Sequential(*convs)
+        self.convs = SequentialMultiplierArgs(*convs)
         self.fc = torch.nn.Linear(hidden_dim, n_class)
 
     def forward(self, data):
@@ -2648,7 +2665,7 @@ class AttnGCN_narrow_short(torch.nn.Module):
 
         # Create the first GATv2Conv layer
         self.layers = [
-            Sequential('x, edge_index, edge_weight', [
+            SequentialMultiplierArgsNext(OrderedDict([
                 (f'conv0', GATv2Conv(in_channels=init_dim,
                                      out_channels=hidden_channels,
                                      heads=n_heads,
@@ -2658,13 +2675,13 @@ class AttnGCN_narrow_short(torch.nn.Module):
                                      share_weights=False,
                                      add_self_loops=False)),
                 (f'norm0', BatchNorm1d(hidden_channels * n_heads))
-            ])
+            ]))
         ]
 
         # Create intermediate GATv2Conv layers
         for i in range(1, num_layers):
             self.layers.append(
-                Sequential('x, edge_index, edge_weight', [
+                SequentialMultiplierArgsNext(OrderedDict([
                     (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
                                            out_channels=hidden_channels,
                                            heads=n_heads,
@@ -2674,11 +2691,11 @@ class AttnGCN_narrow_short(torch.nn.Module):
                                            share_weights=False,
                                            add_self_loops=True)),
                     (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
-                ])
+                ]))
             )
 
         # Convert the list of layers to a torch.nn.Sequential
-        self.layers = torch.nn.Sequential(*self.layers)
+        self.layers = SequentialMultiplierArgsNext(*self.layers)
 
         # Output layer
         self.fc = Linear(hidden_channels * n_heads, n_class)
@@ -2708,7 +2725,7 @@ class AttnGCN_wide_short(torch.nn.Module):
 
         # Create the first GATv2Conv layer
         self.layers = [
-            Sequential('x, edge_index, edge_weight', [
+            SequentialMultiplierArgsNext(OrderedDict([
                 (f'conv0', GATv2Conv(in_channels=init_dim,
                                      out_channels=hidden_channels,
                                      heads=n_heads,
@@ -2718,13 +2735,13 @@ class AttnGCN_wide_short(torch.nn.Module):
                                      share_weights=False,
                                      add_self_loops=False)),
                 (f'norm0', BatchNorm1d(hidden_channels * n_heads))
-            ])
+            ]))
         ]
 
         # Create intermediate GATv2Conv layers
         for i in range(1, num_layers):
             self.layers.append(
-                Sequential('x, edge_index, edge_weight', [
+                SequentialMultiplierArgsNext(OrderedDict([
                     (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
                                            out_channels=hidden_channels,
                                            heads=n_heads,
@@ -2734,11 +2751,11 @@ class AttnGCN_wide_short(torch.nn.Module):
                                            share_weights=False,
                                            add_self_loops=True)),
                     (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
-                ])
+                ]))
             )
 
         # Convert the list of layers to a torch.nn.Sequential
-        self.layers = torch.nn.Sequential(*self.layers)
+        self.layers = SequentialMultiplierArgsNext(*self.layers)
 
         # Output layer
         self.fc = Linear(hidden_channels * n_heads, n_class)
@@ -2769,7 +2786,7 @@ class AttnGCN_narrow_long(torch.nn.Module):
 
         # Create the first GATv2Conv layer
         self.layers = [
-            Sequential('x, edge_index, edge_weight', [
+            SequentialMultiplierArgsNext(OrderedDict([
                 (f'conv0', GATv2Conv(in_channels=init_dim,
                                      out_channels=hidden_channels,
                                      heads=n_heads,
@@ -2779,13 +2796,13 @@ class AttnGCN_narrow_long(torch.nn.Module):
                                      share_weights=False,
                                      add_self_loops=False)),
                 (f'norm0', BatchNorm1d(hidden_channels * n_heads))
-            ])
+            ]))
         ]
 
         # Create intermediate GATv2Conv layers
         for i in range(1, num_layers):
             self.layers.append(
-                Sequential('x, edge_index, edge_weight', [
+                SequentialMultiplierArgsNext(OrderedDict([
                     (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
                                            out_channels=hidden_channels,
                                            heads=n_heads,
@@ -2795,11 +2812,11 @@ class AttnGCN_narrow_long(torch.nn.Module):
                                            share_weights=False,
                                            add_self_loops=True)),
                     (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
-                ])
+                ]))
             )
 
         # Convert the list of layers to a torch.nn.Sequential
-        self.layers = torch.nn.Sequential(*self.layers)
+        self.layers = SequentialMultiplierArgsNext(*self.layers)
 
         # Output layer
         self.fc = Linear(hidden_channels * n_heads, n_class)
@@ -2830,7 +2847,7 @@ class AttnGCN_wide_long(torch.nn.Module):
 
         # Create the first GATv2Conv layer
         self.layers = [
-            Sequential('x, edge_index, edge_weight', [
+            SequentialMultiplierArgsNext(OrderedDict([
                 (f'conv0', GATv2Conv(in_channels=init_dim,
                                      out_channels=hidden_channels,
                                      heads=n_heads,
@@ -2840,13 +2857,13 @@ class AttnGCN_wide_long(torch.nn.Module):
                                      share_weights=False,
                                      add_self_loops=False)),
                 (f'norm0', BatchNorm1d(hidden_channels * n_heads))
-            ])
+            ]))
         ]
 
         # Create intermediate GATv2Conv layers
         for i in range(1, num_layers):
             self.layers.append(
-                Sequential('x, edge_index, edge_weight', [
+                SequentialMultiplierArgsNext(OrderedDict([
                     (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
                                            out_channels=hidden_channels,
                                            heads=n_heads,
@@ -2856,11 +2873,11 @@ class AttnGCN_wide_long(torch.nn.Module):
                                            share_weights=False,
                                            add_self_loops=True)),
                     (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
-                ])
+                ]))
             )
 
         # Convert the list of layers to a torch.nn.Sequential
-        self.layers = torch.nn.Sequential(*self.layers)
+        self.layers = SequentialMultiplierArgsNext(*self.layers)
 
         # Output layer
         self.fc = Linear(hidden_channels * n_heads, n_class)

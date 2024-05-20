@@ -1,0 +1,97 @@
+{
+    "Arrakis": [
+        {
+            "crossvalidation": {
+                "community_detection": [],
+                "gnns": [
+                    "GINNet_wide_short",
+                    "GINNet_narrow_long",
+                    "GINNet_wide_long",
+                    "GINNet_gb",
+                    "GINNet_narrow_short_gb",
+                    "GINNet_wide_short_gb",
+                    "GINNet_narrow_long_gb",
+                    "GINNet_wide_long_gb",
+                    "AttnGCN",
+                    "AttnGCN_narrow_short",
+                    "AttnGCN_wide_short",
+                    "AttnGCN_narrow_long",
+                    "AttnGCN_wide_long",
+                    "AttnGCN_gb",
+                    "AttnGCN_narrow_short_gb",
+                    "AttnGCN_wide_short_gb",
+                    "AttnGCN_narrow_long_gb",
+                    "AttnGCN_wide_long_gb",
+                    "AttnGCN_narrow_short",
+                    "GINNet_narrow_short",
+                    "TAGConv_9l_512h_nw_k3_gb",
+                    "TAGConv_9l_512h_nw_k3",
+                    "TAGConv_9l_128h_k3",
+                    "TAGConv_3l_128h_w_k3",
+                    "TAGConv_3l_512h_w_k3",
+                    "TAGConv_9l_128h_k3_gb",
+                    "TAGConv_3l_128h_w_k3_gb",
+                    "TAGConv_3l_512h_w_k3_gb",
+                    "GCNConv_3l_128h_w",
+                    "GCNConv_3l_128h_w_gb",
+                    "GINNet"
+                ],
+                "heuristics": [
+                    "EdgeCount",
+                    "EdgeCountPerClassize",
+                    "SegmentCount",
+                    "LongestIbd",
+                    "IbdSum",
+                    "IbdSumPerEdge"
+                ],
+                "log_weights": "False",
+                "mlps": [],
+                "split_count": 10,
+                "testshare": 0.2,
+                "valshare": 0.2
+            },
+            "datafile": "arrakis100-10_Arrakis_exp0.csv",
+            "datasetparams": {
+                "edge_probability": [
+                    [
+                        0.3,
+                        0
+                    ],
+                    [
+                        0,
+                        0.4
+                    ]
+                ],
+                "mean_weight": [
+                    [
+                        20.0,
+                        -1.0
+                    ],
+                    [
+                        -1.0,
+                        20.0
+                    ]
+                ],
+                "pop_names": [
+                    "Atreides",
+                    "Sandworm"
+                ],
+                "pop_sizes": [
+                    100,
+                    10
+                ]
+            },
+            "experiment": {
+                "all_edge_probability_scale": 1,
+                "all_weight_scale": 1,
+                "diag_edge_probability_scale": 1.0,
+                "diag_weight_scale": 1,
+                "nondg_edge_probability_scale": 1,
+                "nondg_weight_scale": 1,
+                "population_scale": 1.0
+            },
+            "id": 0,
+            "partitionfile": "arrakis100-10_Arrakis_exp0.split"
+        }
+    ]
+}

@@ -1,0 +1,1960 @@
+{
+    "Arrakis": [
+        {
+            "brief": {
+                "AttnGCN": {
+                    "f1_macro": 1.0,
+                    "time": 12.3303964138031
+                },
+                "AttnGCN_gb": {
+                    "f1_macro": 1.0,
+                    "time": 4.918426275253296
+                },
+                "AttnGCN_narrow_long": {
+                    "f1_macro": 1.0,
+                    "time": 46.14187264442444
+                },
+                "AttnGCN_narrow_long_gb": {
+                    "f1_macro": 1.0,
+                    "time": 10.48979926109314
+                },
+                "AttnGCN_narrow_short": {
+                    "f1_macro": 1.0,
+                    "time": 15.631062626838684
+                },
+                "AttnGCN_narrow_short_gb": {
+                    "f1_macro": 1.0,
+                    "time": 4.952877521514893
+                },
+                "AttnGCN_wide_long": {
+                    "f1_macro": 1.0,
+                    "time": 47.72667145729065
+                },
+                "AttnGCN_wide_long_gb": {
+                    "f1_macro": 1.0,
+                    "time": 13.677190780639648
+                },
+                "AttnGCN_wide_short": {
+                    "f1_macro": 1.0,
+                    "time": 18.418103456497192
+                },
+                "AttnGCN_wide_short_gb": {
+                    "f1_macro": 0.8211382113821137,
+                    "time": 5.38205885887146
+                },
+                "EdgeCount": {
+                    "f1_macro": 1.0,
+                    "time": 0.018812894821166992
+                },
+                "EdgeCountPerClassize": {
+                    "f1_macro": 1.0,
+                    "time": 0.018812894821166992
+                },
+                "GCNConv_3l_128h_w": {
+                    "f1_macro": 1.0,
+                    "time": 18.219966888427734
+                },
+                "GCNConv_3l_128h_w_gb": {
+                    "f1_macro": 1.0,
+                    "time": 7.532490253448486
+                },
+                "GINNet": {
+                    "f1_macro": 1.0,
+                    "time": 8.656781196594238
+                },
+                "GINNet_gb": {
+                    "f1_macro": 1.0,
+                    "time": 8.673742532730103
+                },
+                "GINNet_narrow_long": {
+                    "f1_macro": 1.0,
+                    "time": 13.04344129562378
+                },
+                "GINNet_narrow_long_gb": {
+                    "f1_macro": 1.0,
+                    "time": 5.266837120056152
+                },
+                "GINNet_narrow_short": {
+                    "f1_macro": 1.0,
+                    "time": 7.253284454345703
+                },
+                "GINNet_narrow_short_gb": {
+                    "f1_macro": 1.0,
+                    "time": 4.230325222015381
+                },
+                "GINNet_wide_long": {
+                    "f1_macro": 1.0,
+                    "time": 14.519187211990356
+                },
+                "GINNet_wide_long_gb": {
+                    "f1_macro": 1.0,
+                    "time": 5.636064291000366
+                },
+                "GINNet_wide_short": {
+                    "f1_macro": 1.0,
+                    "time": 17.682440042495728
+                },
+                "GINNet_wide_short_gb": {
+                    "f1_macro": 1.0,
+                    "time": 4.331721782684326
+                },
+                "IbdSum": {
+                    "f1_macro": 1.0,
+                    "time": 0.018812894821166992
+                },
+                "IbdSumPerEdge": {
+                    "f1_macro": 1.0,
+                    "time": 0.018812894821166992
+                },
+                "LongestIbd": {
+                    "f1_macro": 1.0,
+                    "time": 0.018812894821166992
+                },
+                "SegmentCount": {
+                    "f1_macro": 1.0,
+                    "time": 0.018812894821166992
+                },
+                "TAGConv_3l_128h_w_k3": {
+                    "f1_macro": 1.0,
+                    "time": 9.047999143600464
+                },
+                "TAGConv_3l_128h_w_k3_gb": {
+                    "f1_macro": 1.0,
+                    "time": 3.804914712905884
+                },
+                "TAGConv_3l_512h_w_k3": {
+                    "f1_macro": 1.0,
+                    "time": 7.449054479598999
+                },
+                "TAGConv_3l_512h_w_k3_gb": {
+                    "f1_macro": 1.0,
+                    "time": 3.863429546356201
+                },
+                "TAGConv_9l_128h_k3": {
+                    "f1_macro": 1.0,
+                    "time": 15.721954107284546
+                },
+                "TAGConv_9l_128h_k3_gb": {
+                    "f1_macro": 1.0,
+                    "time": 5.76803731918335
+                },
+                "TAGConv_9l_512h_nw_k3": {
+                    "f1_macro": 1.0,
+                    "time": 18.19681668281555
+                },
+                "TAGConv_9l_512h_nw_k3_gb": {
+                    "f1_macro": 1.0,
+                    "time": 6.794643878936768
+                }
+            },
+            "complete_splits": 1,
+            "dataset_begin": "21:41 on 20 May 2024",
+            "dataset_end": "21:48 on 20 May 2024",
+            "dataset_time": 381.18802213668823,
+            "exp_idx": 0,
+            "full": {
+                "AttnGCN": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 12.3303964138031,
+                        "std": 0.0,
+                        "values": [
+                            12.3303964138031
+                        ]
+                    }
+                },
+                "AttnGCN_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 4.918426275253296,
+                        "std": 0.0,
+                        "values": [
+                            4.918426275253296
+                        ]
+                    }
+                },
+                "AttnGCN_narrow_long": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 46.14187264442444,
+                        "std": 0.0,
+                        "values": [
+                            46.14187264442444
+                        ]
+                    }
+                },
+                "AttnGCN_narrow_long_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 10.48979926109314,
+                        "std": 0.0,
+                        "values": [
+                            10.48979926109314
+                        ]
+                    }
+                },
+                "AttnGCN_narrow_short": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0,
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0,
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0,
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 15.631062626838684,
+                        "std": 0.034146666526794434,
+                        "values": [
+                            15.59691596031189,
+                            15.665209293365479
+                        ]
+                    }
+                },
+                "AttnGCN_narrow_short_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 4.952877521514893,
+                        "std": 0.0,
+                        "values": [
+                            4.952877521514893
+                        ]
+                    }
+                },
+                "AttnGCN_wide_long": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 47.72667145729065,
+                        "std": 0.0,
+                        "values": [
+                            47.72667145729065
+                        ]
+                    }
+                },
+                "AttnGCN_wide_long_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 13.677190780639648,
+                        "std": 0.0,
+                        "values": [
+                            13.677190780639648
+                        ]
+                    }
+                },
+                "AttnGCN_wide_short": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 18.418103456497192,
+                        "std": 0.0,
+                        "values": [
+                            18.418103456497192
+                        ]
+                    }
+                },
+                "AttnGCN_wide_short_gb": {
+                    "accuracy": {
+                        "mean": 0.9545454545454546,
+                        "std": 0.0,
+                        "values": [
+                            0.9545454545454546
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 0.975609756097561,
+                            "std": 0.0,
+                            "values": [
+                                0.975609756097561
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 0.6666666666666666,
+                            "std": 0.0,
+                            "values": [
+                                0.6666666666666666
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 0.8211382113821137,
+                        "std": 0.0,
+                        "values": [
+                            0.8211382113821137
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 0.9475240206947523,
+                        "std": 0.0,
+                        "values": [
+                            0.9475240206947523
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 5.38205885887146,
+                        "std": 0.0,
+                        "values": [
+                            5.38205885887146
+                        ]
+                    }
+                },
+                "EdgeCount": {
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "time": {
+                        "mean": 0.018812894821166992,
+                        "std": 0.0,
+                        "values": [
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992
+                        ]
+                    }
+                },
+                "EdgeCountPerClassize": {
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "time": {
+                        "mean": 0.018812894821166992,
+                        "std": 0.0,
+                        "values": [
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992
+                        ]
+                    }
+                },
+                "GCNConv_3l_128h_w": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 18.219966888427734,
+                        "std": 0.0,
+                        "values": [
+                            18.219966888427734
+                        ]
+                    }
+                },
+                "GCNConv_3l_128h_w_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 7.532490253448486,
+                        "std": 0.0,
+                        "values": [
+                            7.532490253448486
+                        ]
+                    }
+                },
+                "GINNet": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 8.656781196594238,
+                        "std": 0.0,
+                        "values": [
+                            8.656781196594238
+                        ]
+                    }
+                },
+                "GINNet_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 8.673742532730103,
+                        "std": 0.0,
+                        "values": [
+                            8.673742532730103
+                        ]
+                    }
+                },
+                "GINNet_narrow_long": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 13.04344129562378,
+                        "std": 0.0,
+                        "values": [
+                            13.04344129562378
+                        ]
+                    }
+                },
+                "GINNet_narrow_long_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 5.266837120056152,
+                        "std": 0.0,
+                        "values": [
+                            5.266837120056152
+                        ]
+                    }
+                },
+                "GINNet_narrow_short": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 7.253284454345703,
+                        "std": 0.0,
+                        "values": [
+                            7.253284454345703
+                        ]
+                    }
+                },
+                "GINNet_narrow_short_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 4.230325222015381,
+                        "std": 0.0,
+                        "values": [
+                            4.230325222015381
+                        ]
+                    }
+                },
+                "GINNet_wide_long": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 14.519187211990356,
+                        "std": 0.0,
+                        "values": [
+                            14.519187211990356
+                        ]
+                    }
+                },
+                "GINNet_wide_long_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 5.636064291000366,
+                        "std": 0.0,
+                        "values": [
+                            5.636064291000366
+                        ]
+                    }
+                },
+                "GINNet_wide_short": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 17.682440042495728,
+                        "std": 0.0,
+                        "values": [
+                            17.682440042495728
+                        ]
+                    }
+                },
+                "GINNet_wide_short_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 4.331721782684326,
+                        "std": 0.0,
+                        "values": [
+                            4.331721782684326
+                        ]
+                    }
+                },
+                "IbdSum": {
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "time": {
+                        "mean": 0.018812894821166992,
+                        "std": 0.0,
+                        "values": [
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992
+                        ]
+                    }
+                },
+                "IbdSumPerEdge": {
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "time": {
+                        "mean": 0.018812894821166992,
+                        "std": 0.0,
+                        "values": [
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992
+                        ]
+                    }
+                },
+                "LongestIbd": {
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "time": {
+                        "mean": 0.018812894821166992,
+                        "std": 0.0,
+                        "values": [
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992
+                        ]
+                    }
+                },
+                "SegmentCount": {
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "time": {
+                        "mean": 0.018812894821166992,
+                        "std": 0.0,
+                        "values": [
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992,
+                            0.018812894821166992
+                        ]
+                    }
+                },
+                "TAGConv_3l_128h_w_k3": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 9.047999143600464,
+                        "std": 0.0,
+                        "values": [
+                            9.047999143600464
+                        ]
+                    }
+                },
+                "TAGConv_3l_128h_w_k3_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 3.804914712905884,
+                        "std": 0.0,
+                        "values": [
+                            3.804914712905884
+                        ]
+                    }
+                },
+                "TAGConv_3l_512h_w_k3": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 7.449054479598999,
+                        "std": 0.0,
+                        "values": [
+                            7.449054479598999
+                        ]
+                    }
+                },
+                "TAGConv_3l_512h_w_k3_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 3.863429546356201,
+                        "std": 0.0,
+                        "values": [
+                            3.863429546356201
+                        ]
+                    }
+                },
+                "TAGConv_9l_128h_k3": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 15.721954107284546,
+                        "std": 0.0,
+                        "values": [
+                            15.721954107284546
+                        ]
+                    }
+                },
+                "TAGConv_9l_128h_k3_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 5.76803731918335,
+                        "std": 0.0,
+                        "values": [
+                            5.76803731918335
+                        ]
+                    }
+                },
+                "TAGConv_9l_512h_nw_k3": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 18.19681668281555,
+                        "std": 0.0,
+                        "values": [
+                            18.19681668281555
+                        ]
+                    }
+                },
+                "TAGConv_9l_512h_nw_k3_gb": {
+                    "accuracy": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "class_scores": {
+                        "Atreides": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        },
+                        "Sandworm": {
+                            "mean": 1.0,
+                            "std": 0.0,
+                            "values": [
+                                1.0
+                            ]
+                        }
+                    },
+                    "f1_macro": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "f1_weighted": {
+                        "mean": 1.0,
+                        "std": 0.0,
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "skipped_nodes": {
+                        "mean": 0.0,
+                        "std": 0.0,
+                        "values": [
+                            0
+                        ]
+                    },
+                    "time": {
+                        "mean": 6.794643878936768,
+                        "std": 0.0,
+                        "values": [
+                            6.794643878936768
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
