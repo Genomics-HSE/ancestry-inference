@@ -2443,3 +2443,435 @@ class GINNet(torch.nn.Module):
         x = self.fc(x)
 
         return F.log_softmax(x, dim=1)
+    
+    
+
+####################################################################################################################################################
+    
+    
+    
+class GINNet_narrow_short(torch.nn.Module):
+    def __init__(self, data, num_layers=3, hidden_dim=128):
+        super(GINNet_narrow_short, self).__init__()
+        
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+        
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+
+        convs = [GINConv(
+            nn=torch.nn.Sequential(
+                torch.nn.Linear(init_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU()
+            ),
+            eps=0.0  # Add a small value to the denominator for numerical stability
+        )]
+
+        for i in range(self.num_layers-1):
+            convs.append(
+                GINConv(
+                    nn=torch.nn.Sequential(
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU(),
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU()
+                    ),
+                    eps=0.0
+                )
+            )
+        self.convs = torch.nn.Sequential(*convs)
+        self.fc = torch.nn.Linear(hidden_dim, n_class)
+
+    def forward(self, data):
+        x, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.convs(x, edge_index)
+        h = self.fc(h)
+        return h
+    
+    
+    
+class GINNet_wide_short(torch.nn.Module):
+    def __init__(self, data, num_layers=3, hidden_dim=512):
+        super(GINNet_wide_short, self).__init__()
+        
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+        
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+
+        convs = [GINConv(
+            nn=torch.nn.Sequential(
+                torch.nn.Linear(init_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU()
+            ),
+            eps=0.0  # Add a small value to the denominator for numerical stability
+        )]
+
+        for i in range(self.num_layers-1):
+            convs.append(
+                GINConv(
+                    nn=torch.nn.Sequential(
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU(),
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU()
+                    ),
+                    eps=0.0
+                )
+            )
+        self.convs = torch.nn.Sequential(*convs)
+        self.fc = torch.nn.Linear(hidden_dim, n_class)
+
+    def forward(self, data):
+        x, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.convs(x, edge_index)
+        h = self.fc(h)
+        return h
+    
+    
+    
+class GINNet_narrow_long(torch.nn.Module):
+    def __init__(self, data, num_layers=9, hidden_dim=128):
+        super(GINNet_narrow_long, self).__init__()
+        
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+        
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+
+        convs = [GINConv(
+            nn=torch.nn.Sequential(
+                torch.nn.Linear(init_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU()
+            ),
+            eps=0.0  # Add a small value to the denominator for numerical stability
+        )]
+
+        for i in range(self.num_layers-1):
+            convs.append(
+                GINConv(
+                    nn=torch.nn.Sequential(
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU(),
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU()
+                    ),
+                    eps=0.0
+                )
+            )
+        self.convs = torch.nn.Sequential(*convs)
+        self.fc = torch.nn.Linear(hidden_dim, n_class)
+
+    def forward(self, data):
+        x, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.convs(x, edge_index)
+        h = self.fc(h)
+        return h
+    
+    
+    
+class GINNet_wide_long(torch.nn.Module):
+    def __init__(self, data, num_layers=9, hidden_dim=512):
+        super(GINNet_narrow_long, self).__init__()
+        
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+        
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+
+        convs = [GINConv(
+            nn=torch.nn.Sequential(
+                torch.nn.Linear(init_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.BatchNorm1d(hidden_dim),
+                torch.nn.ReLU()
+            ),
+            eps=0.0  # Add a small value to the denominator for numerical stability
+        )]
+
+        for i in range(self.num_layers-1):
+            convs.append(
+                GINConv(
+                    nn=torch.nn.Sequential(
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU(),
+                        torch.nn.Linear(hidden_dim, hidden_dim),
+                        torch.nn.BatchNorm1d(hidden_dim),
+                        torch.nn.ReLU()
+                    ),
+                    eps=0.0
+                )
+            )
+        self.convs = torch.nn.Sequential(*convs)
+        self.fc = torch.nn.Linear(hidden_dim, n_class)
+
+    def forward(self, data):
+        x, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+        h = self.convs(x, edge_index)
+        h = self.fc(h)
+        return h    
+
+
+
+class AttnGCN_narrow_short(torch.nn.Module):
+    def __init__(self, data, num_layers=3, hidden_channels=128, n_heads=2, dropout=0.2):
+        super().__init__()
+        self.dp = dropout
+
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+
+        # Create the first GATv2Conv layer
+        self.layers = [
+            Sequential('x, edge_index, edge_weight', [
+                (f'conv0', GATv2Conv(in_channels=init_dim,
+                                     out_channels=hidden_channels,
+                                     heads=n_heads,
+                                     edge_dim=1,
+                                     aggr="add",
+                                     concat=True,
+                                     share_weights=False,
+                                     add_self_loops=False)),
+                (f'norm0', BatchNorm1d(hidden_channels * n_heads))
+            ])
+        ]
+
+        # Create intermediate GATv2Conv layers
+        for i in range(1, num_layers):
+            self.layers.append(
+                Sequential('x, edge_index, edge_weight', [
+                    (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
+                                           out_channels=hidden_channels,
+                                           heads=n_heads,
+                                           edge_dim=1,
+                                           aggr="add",
+                                           concat=True,
+                                           share_weights=False,
+                                           add_self_loops=True)),
+                    (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
+                ])
+            )
+
+        # Convert the list of layers to a torch.nn.Sequential
+        self.layers = torch.nn.Sequential(*self.layers)
+
+        # Output layer
+        self.fc = Linear(hidden_channels * n_heads, n_class)
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+
+        for layer in self.layers:
+            h = layer(h, edge_index, edge_weight)
+            h = F.leaky_relu(h)
+            h = F.dropout(h, p=self.dp, training=self.training)
+
+        h = self.fc(h)
+        return h
+    
+    
+
+    
+    
+class AttnGCN_wide_short(torch.nn.Module):
+    def __init__(self, data, num_layers=3, hidden_channels=512, n_heads=2, dropout=0.2):
+        super().__init__()
+        self.dp = dropout
+
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+
+        # Create the first GATv2Conv layer
+        self.layers = [
+            Sequential('x, edge_index, edge_weight', [
+                (f'conv0', GATv2Conv(in_channels=init_dim,
+                                     out_channels=hidden_channels,
+                                     heads=n_heads,
+                                     edge_dim=1,
+                                     aggr="add",
+                                     concat=True,
+                                     share_weights=False,
+                                     add_self_loops=False)),
+                (f'norm0', BatchNorm1d(hidden_channels * n_heads))
+            ])
+        ]
+
+        # Create intermediate GATv2Conv layers
+        for i in range(1, num_layers):
+            self.layers.append(
+                Sequential('x, edge_index, edge_weight', [
+                    (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
+                                           out_channels=hidden_channels,
+                                           heads=n_heads,
+                                           edge_dim=1,
+                                           aggr="add",
+                                           concat=True,
+                                           share_weights=False,
+                                           add_self_loops=True)),
+                    (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
+                ])
+            )
+
+        # Convert the list of layers to a torch.nn.Sequential
+        self.layers = torch.nn.Sequential(*self.layers)
+
+        # Output layer
+        self.fc = Linear(hidden_channels * n_heads, n_class)
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+
+        for layer in self.layers:
+            h = layer(h, edge_index, edge_weight)
+            h = F.leaky_relu(h)
+            h = F.dropout(h, p=self.dp, training=self.training)
+
+        h = self.fc(h)
+        return h
+    
+    
+    
+    
+
+    
+class AttnGCN_narrow_long(torch.nn.Module):
+    def __init__(self, data, num_layers=9, hidden_channels=128, n_heads=2, dropout=0.2):
+        super().__init__()
+        self.dp = dropout
+
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+
+        # Create the first GATv2Conv layer
+        self.layers = [
+            Sequential('x, edge_index, edge_weight', [
+                (f'conv0', GATv2Conv(in_channels=init_dim,
+                                     out_channels=hidden_channels,
+                                     heads=n_heads,
+                                     edge_dim=1,
+                                     aggr="add",
+                                     concat=True,
+                                     share_weights=False,
+                                     add_self_loops=False)),
+                (f'norm0', BatchNorm1d(hidden_channels * n_heads))
+            ])
+        ]
+
+        # Create intermediate GATv2Conv layers
+        for i in range(1, num_layers):
+            self.layers.append(
+                Sequential('x, edge_index, edge_weight', [
+                    (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
+                                           out_channels=hidden_channels,
+                                           heads=n_heads,
+                                           edge_dim=1,
+                                           aggr="add",
+                                           concat=True,
+                                           share_weights=False,
+                                           add_self_loops=True)),
+                    (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
+                ])
+            )
+
+        # Convert the list of layers to a torch.nn.Sequential
+        self.layers = torch.nn.Sequential(*self.layers)
+
+        # Output layer
+        self.fc = Linear(hidden_channels * n_heads, n_class)
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+
+        for layer in self.layers:
+            h = layer(h, edge_index, edge_weight)
+            h = F.leaky_relu(h)
+            h = F.dropout(h, p=self.dp, training=self.training)
+
+        h = self.fc(h)
+        return h
+    
+    
+    
+    
+    
+    
+class AttnGCN_wide_long(torch.nn.Module):
+    def __init__(self, data, num_layers=9, hidden_channels=512, n_heads=2, dropout=0.2):
+        super().__init__()
+        self.dp = dropout
+
+        n_class = int(data.num_classes)
+        init_dim = data.num_features
+
+        # Create the first GATv2Conv layer
+        self.layers = [
+            Sequential('x, edge_index, edge_weight', [
+                (f'conv0', GATv2Conv(in_channels=init_dim,
+                                     out_channels=hidden_channels,
+                                     heads=n_heads,
+                                     edge_dim=1,
+                                     aggr="add",
+                                     concat=True,
+                                     share_weights=False,
+                                     add_self_loops=False)),
+                (f'norm0', BatchNorm1d(hidden_channels * n_heads))
+            ])
+        ]
+
+        # Create intermediate GATv2Conv layers
+        for i in range(1, num_layers):
+            self.layers.append(
+                Sequential('x, edge_index, edge_weight', [
+                    (f'conv{i}', GATv2Conv(in_channels=hidden_channels * n_heads,
+                                           out_channels=hidden_channels,
+                                           heads=n_heads,
+                                           edge_dim=1,
+                                           aggr="add",
+                                           concat=True,
+                                           share_weights=False,
+                                           add_self_loops=True)),
+                    (f'norm{i}', BatchNorm1d(hidden_channels * n_heads))
+                ])
+            )
+
+        # Convert the list of layers to a torch.nn.Sequential
+        self.layers = torch.nn.Sequential(*self.layers)
+
+        # Output layer
+        self.fc = Linear(hidden_channels * n_heads, n_class)
+
+    def forward(self, data):
+        h, edge_index, edge_weight = data.x.float(), data.edge_index, data.weight.float()
+
+        for layer in self.layers:
+            h = layer(h, edge_index, edge_weight)
+            h = F.leaky_relu(h)
+            h = F.dropout(h, p=self.dp, training=self.training)
+
+        h = self.fc(h)
+        return h
