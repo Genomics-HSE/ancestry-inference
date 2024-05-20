@@ -38,17 +38,32 @@ NNs = {
     "TAGConv_3l_512h_w_k3": TAGConv_3l_512h_w_k3,    
     "TAGConv_9l_512h_nw_k3": TAGConv_9l_512h_nw_k3,
     "TAGConv_9l_128h_k3": TAGConv_9l_128h_k3,
-    "GCNConv_3l_128h_w": GCNConv_3l_128h_w,
-    "GINNet": GINNet,
-    "AttnGCN": AttnGCN,
     "TAGConv_3l_128h_w_k3_gb": TAGConv_3l_128h_w_k3,
     "TAGConv_3l_512h_w_k3_gb": TAGConv_3l_512h_w_k3,    
     "TAGConv_9l_512h_nw_k3_gb": TAGConv_9l_512h_nw_k3,
     "TAGConv_9l_128h_k3_gb": TAGConv_9l_128h_k3,
+    "GCNConv_3l_128h_w": GCNConv_3l_128h_w,
     "GCNConv_3l_128h_w_gb": GCNConv_3l_128h_w,
+    "GINNet": GINNet,
+    "GINNet_narrow_short": GINNet_narrow_short, 
+    "GINNet_wide_short": GINNet_wide_short, 
+    "GINNet_narrow_long": GINNet_narrow_long, 
+    "GINNet_wide_long": GINNet_wide_long,
     "GINNet_gb": GINNet,
-    "AttnGCN_gb": AttnGCN   
-   
+    "GINNet_narrow_short_gb": GINNet_narrow_short, 
+    "GINNet_wide_short_gb": GINNet_wide_short, 
+    "GINNet_narrow_long_gb": GINNet_narrow_long, 
+    "GINNet_wide_long_gb": GINNet_wide_long,
+    "AttnGCN": AttnGCN,
+    "AttnGCN_narrow_short": AttnGCN_narrow_short, 
+    "AttnGCN_wide_short": AttnGCN_wide_short,
+    "AttnGCN_narrow_long": AttnGCN_narrow_long, 
+    "AttnGCN_wide_long":AttnGCN_wide_long,
+    "AttnGCN_gb": AttnGCN,
+    "AttnGCN_narrow_short_gb": AttnGCN_narrow_short, 
+    "AttnGCN_wide_short_gb": AttnGCN_wide_short,
+    "AttnGCN_narrow_long_gb": AttnGCN_narrow_long, 
+    "AttnGCN_wide_long_gb":AttnGCN_wide_long
 }
 
 
