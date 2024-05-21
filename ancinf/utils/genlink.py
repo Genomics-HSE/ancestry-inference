@@ -1665,7 +1665,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': skipped_nodes}
+        return {'f1_macro': float(f1_macro_score), 'f1_weighted': float(f1_weighted_score), 'accuracy':float(acc), 'class_scores': float(f1_macro_score_per_class), 'skipped_nodes': int(skipped_nodes)}
         
         
     def tikhonov_regularization(self, G, gamma, x_labeled, y_labeled, p):
