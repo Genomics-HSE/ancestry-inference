@@ -1607,7 +1607,8 @@ class BaselineMethods:
         for i in range(len(y_labeled)):
             if y_labeled[i] == c:
                 important_nodes[x_labeled[i]] = 1 / np.sum(y_labeled == c)
-        return np.array(list(nx.pagerank(G, personalization=important_nodes, alpha=alpha).values()))
+        # print(len(G), important_nodes)
+        return np.array(list(nx.pagerank(G, personalization=important_nodes if len(important_nodes) > 0 else None, alpha=alpha).values()))
     
     
     def multi_rank_walk(self, alpha):
