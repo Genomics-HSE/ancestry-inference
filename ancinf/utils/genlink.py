@@ -1219,7 +1219,7 @@ class BaselineMethods:
             print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
             f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
-        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': len(self.test_nodes) - len(self.data.array_of_graphs_for_testing)}
+        return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': len(self.data.test_nodes) - len(self.data.array_of_graphs_for_testing)}
     
     def map_cluster_labels_with_target_classes(self, cluster_labels, target_labels):
         # vouter algorithm
