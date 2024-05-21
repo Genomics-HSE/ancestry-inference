@@ -527,7 +527,19 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
                 dp = DataProcessor(datafile)
                 dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy') 
                 bm = BaselineMethods(dp)
-                score = bm.relational_neighbor_classifier(0.001)            
+                score = bm.relational_neighbor_classifier(0.001)        
+            if comdet == "MultiRankWalk":
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy') 
+                bm = BaselineMethods(dp)
+                score = bm.multi_rank_walk(0.8)      
+            if comdet == "RidgeRegression":
+                dp = DataProcessor(datafile)
+                dp.load_train_valid_test_nodes(train_split, valid_split, test_split, 'numpy') 
+                bm = BaselineMethods(dp)
+                score = bm.ridge_regression(0.5, 3)        
+                
+                    
             runtime = time.time() - starttime
             print(comdet,":", score)
             if type(score) is dict:
