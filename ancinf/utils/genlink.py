@@ -315,7 +315,7 @@ class DataProcessor:
         
         G = self.nx_graph
         
-        if not picture_only:
+        if not picture_only: # remove that line
         
             features['Number of nodes'] = G.number_of_nodes()
             features['Number of edges'] = G.number_of_edges()
