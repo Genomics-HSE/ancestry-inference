@@ -352,7 +352,7 @@ class DataProcessor:
             features['Is Eulerian'] = nx.is_eulerian(G)
             features['Is semi-Eulerian'] = nx.is_semieulerian(G)
             features['Is regular'] = nx.is_regular(G)
-            features['Average shortest path length'] = nx.average_shortest_path_length(G)
+            features['Average shortest path length'] = nx.average_shortest_path_length(G) # try weighted too
             features['Is tree'] = nx.is_tree(G)
             features['Is forest'] = nx.is_forest(G)
             
@@ -396,7 +396,7 @@ class DataProcessor:
             features['Mean betweenness centrality'] = np.mean(cba)
             features['Min betweenness centrality'] = np.min(cba)
             
-#             ck = nx.katz_centrality(G)
+#             ck = nx.katz_centrality(G) # use katz_centrality_numpy
 #             cka = []
 #             for i in range(G.number_of_nodes()):
 #                 cka.append(ck[f'{i}'])
