@@ -97,7 +97,7 @@ def generate_matrices_fn(population_sizes, offset, edge_probs, mean_weight, rng)
             #print(f"{pop_i=} {pop_j=}")
             pop_cross = population_sizes[pop_i] * population_sizes[pop_j]
             #TODO switch to rng.binomial or something
-            bern_samples = bernoulli.rvs(p[pop_i, pop_j], size=pop_cross)
+            bern_samples =  rng.binomial(1, p[pop_i, pop_j], pop_cross) #bernoulli.rvs(p[pop_i, pop_j], size=pop_cross)
             total_segments = np.sum(bern_samples)
             #print(f"{total_segments=}")
             exponential_samples = rng.exponential(teta[pop_i, pop_j], size=total_segments) + offset
