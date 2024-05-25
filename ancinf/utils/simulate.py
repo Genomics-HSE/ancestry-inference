@@ -279,7 +279,7 @@ def simulateandsave(workdir, infile, outfile, rng):
                        "datasetparams":datasetparams,
                        "datafile":datafilename,
                        "crossvalidation": trainparams,
-                       "partitionfile":partfilename
+                       "splitfile":partfilename
             }
             experimentlist.append(expdict)            
         expfiledict[datasetname] = experimentlist 
@@ -289,17 +289,12 @@ def simulateandsave(workdir, infile, outfile, rng):
     with open(experimentlistfile,"w") as f:
         json.dump(expfiledict, f, indent=4, sort_keys=True)
 
-def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare, maskshare, cleandatafilename, rng):
+def filterandsaveonedataset(indatafilename, outdatapathfilenamebase, filters, cleanshare, maskshare, rng):
     retval = None
     pairs, weights, labels, labeldict, idxtranslator = load_pure( indatafilename, debug=False, **(filters))
     conseq_pairs = translate_indices(pairs, idxtranslator)
     labellist = labeldict_to_labellist(labeldict)
-    
-    if not (cleanshare is None):
-        pass
-    else:
-        cleanshare = 0
-    #todo remove all edges to nodes from cleanshare into separate file
+        
     graphdata = composegraphs(pairs, weights, labels, labeldict, idxtranslator)
     ncls = graphdata[0]['nodeclasses']
     grph = graphdata[0]['graph']
@@ -310,9 +305,9 @@ def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare
     trainnodeclasses, valnodeclasses, testnodeclasses = dividetrainvaltest(ncls, maskshare, cleanshare, permt)
     part_ok, part_errors = checkpartition(grph, trainnodeclasses, valnodeclasses, testnodeclasses, details=False, trns=trns)
     if not part_ok:
-        print("bad partition for clean dataset part")                    
-    trainnodes, masknodes, cleannodes = gettrainvaltestnodes(trainnodeclasses, valnodeclasses, testnodeclasses)    
-    print("trainnodes", idxtranslator[trainnodes].tolist())
+        print("bad partition for normal-mask-clean dataset part")                    
+    normalnodes, masknodes, cleannodes = gettrainvaltestnodes(trainnodeclasses, valnodeclasses, testnodeclasses)    
+    print("normalnodes", idxtranslator[normalnodes].tolist())
     if maskshare>0:
         print("masknodes", idxtranslator[masknodes].tolist())
     if cleanshare > 0:
@@ -331,14 +326,16 @@ def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare
         retval["maskednodes"] = msnodes
         
     with ExitStack() as filestack:
-        f = filestack.enter_context(open(outdatafilename, 'w', encoding="utf-8"))
+        f = filestack.enter_context(open(outdatapathfilenamebase+'.csv', 'w', encoding="utf-8"))
         f.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
         if cleanshare > 0:
-            f_clean = filestack.enter_context(open(cleandatafilename, 'w', encoding="utf-8"))
+            f_clean = filestack.enter_context(open(outdatapathfilenamebase+'_clean.csv', 'w', encoding="utf-8"))
             f_clean.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
         if maskshare > 0:
-            f_unmasked = filestack.enter_context(open(outdatafilename+".unmasked.csv", 'w', encoding="utf-8"))
-            f_unmasked.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+            f_masked = filestack.enter_context(open(outdatapathfilenamebase+'_masked.csv', 'w', encoding="utf-8"))
+            f_masked.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
+            f_removed = filestack.enter_context(open(outdatapathfilenamebase+'_removed.csv', 'w', encoding="utf-8"))
+            f_removed.write('node_id1,node_id2,label_id1,label_id2,ibd_sum,ibd_n\n')
         
         for idx, pair in enumerate(pairs):
             i = conseq_pairs[idx][0]
@@ -346,27 +343,29 @@ def filterandsaveonedataset(indatafilename, outdatafilename, filters, cleanshare
             label_i = labellist[labels[i]]
             label_j = labellist[labels[j]]
 
-            name_j = unmasked_name_j = label_j if "," not in label_j else '\"' + label_j + '\"'                
-            name_i = unmasked_name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
+            name_j = masked_name_j = label_j if "," not in label_j else '\"' + label_j + '\"'                
+            name_i = masked_name_i = label_i if "," not in label_i else '\"' + label_i + '\"'
             if maskshare > 0:
                 if i in masknodes:
-                    name_i = "masked"                
+                    masked_name_i = "masked"                
                 if j in masknodes:
-                    name_j = "masked"
+                    masked_name_j = "masked"
 
-            if ((i in trainnodes) or (i in masknodes)) and ((j in trainnodes) or (j in masknodes)):                        
+            if ((i in normalnodes) or (i in masknodes)) and ((j in normalnodes) or (j in masknodes)):                        
                 f.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
                 if maskshare > 0:
-                    f_unmasked.write(f'node_{pair[0]},node_{pair[1]},{unmasked_name_i},{unmasked_name_j},{weights[idx][0]},{pair[2]}\n')
+                    f_masked.write(f'node_{pair[0]},node_{pair[1]},{masked_name_i},{masked_name_j},{weights[idx][0]},{pair[2]}\n')
+                    if (i in normalnodes) and (j in normalnodes):                        
+                        f_removed.write(f'node_{pair[0]},node_{pair[1]},{name_i},{name_j},{weights[idx][0]},{pair[2]}\n')
             else:
                 if i in cleannodes:                            
                     if j in cleannodes:
                         #we do not want edges between clean nodes
                         pass
                     else:
-                        f_clean.write(f'node_{pair[0]},node_{pair[1]},unknown,{name_j},{weights[idx][0]},{pair[2]}\n')
+                        f_clean.write(f'node_{pair[0]},node_{pair[1]},unknown,{masked_name_j},{weights[idx][0]},{pair[2]}\n')
                 elif j in cleannodes:
-                    f_clean.write(f'node_{pair[0]},node_{pair[1]},{name_i},unknown,{weights[idx][0]},{pair[2]}\n')
+                    f_clean.write(f'node_{pair[0]},node_{pair[1]},{masked_name_i},unknown,{weights[idx][0]},{pair[2]}\n')
                 else:
                     print("ERROR! No node from pair belong to train or clean partitions")
         
@@ -396,40 +395,41 @@ def preprocess(datadir, workdir, infile, outfile, rng):
         datasetparams = datasets[datasetname]
                 
         indatafilename = os.path.join(datadir, datasetname+'.csv' )
-        outdatafilename =  projname+'_'+datasetname+'.csv' 
-        partfilename =  projname+'_'+datasetname+'.split' 
+        outdatafilenamebase =  projname+'_'+datasetname                
         
-        cleanshare = None
-        cleandatafilename = ""
-        cleandatafilepathname = ""
         if "cleanshare" in trainparams:
-            cleanshare = trainparams["cleanshare"]
-            cleandatafilename =  projname+'_'+datasetname+'_clean.csv' 
-            cleandatafilepathname = os.path.join(workdir, cleandatafilename)
-        
+            cleanshare = trainparams["cleanshare"]            
+        else:
+            cleanshare = 0
+            
         if "maskshare" in trainparams:
-            maskshare = trainparams["maskshare"]
-            datafnforpartition = outdatafilename+".unmasked.csv"
+            maskshare = trainparams["maskshare"]            
         else:
             maskshare = 0
-            datafnforpartition = outdatafilename
             
-        retval = filterandsaveonedataset(indatafilename, os.path.join(workdir, outdatafilename), datasetparams["filters"], cleanshare, maskshare, cleandatafilepathname, rng)
+            
+        retval = filterandsaveonedataset(indatafilename, os.path.join(workdir, outdatafilenamebase), datasetparams["filters"], cleanshare, maskshare, rng)
         
-        savepartitions(os.path.join(workdir, datafnforpartition), trainparams["valshare"], trainparams["testshare"], trainparams["split_count"],
-                       os.path.join(workdir, partfilename), rng)
-
+        savepartitions(os.path.join(workdir, outdatafilenamebase+ '.csv'), trainparams["valshare"], trainparams["testshare"],
+                       trainparams["split_count"], os.path.join(workdir, outdatafilenamebase+ '.split'), rng)
+        if "maskshare" in trainparams:
+            savepartitions(os.path.join(workdir, outdatafilenamebase+ '_removed.csv'), trainparams["valshare"], trainparams["testshare"],
+                       trainparams["split_count"], os.path.join(workdir, outdatafilenamebase+ '_removed.split'), rng)
+                                                     
         expdict = {
-                   "datafile":outdatafilename,
+                   "datafile":outdatafilenamebase+'.csv',
                    "crossvalidation": trainparams,
-                   "partitionfile":partfilename
+                   "splitfile":outdatafilenamebase+'.split'
         }
         if "cleanshare" in trainparams:
-            expdict["cleanfile"] = cleandatafilename
+            expdict["cleanfile"] = outdatafilenamebase+'_clean.csv'
             expdict["cleannodes"] =  retval["cleannodes"]
             expdict["cleannodelabels"] = retval["cleannodelabels"]
         if "maskshare" in trainparams:
             expdict["maskednodes"] = retval["maskednodes"]
+            expdict["maskedfile"] = outdatafilenamebase+'_masked.csv'
+            expdict["removedfile"] = outdatafilenamebase+'_removed.csv'
+            expdict["removedsplitfile"] = outdatafilenamebase+'_removed.split'
         experimentlist.append(expdict)            
         expfiledict[datasetname] = experimentlist 
         
@@ -460,6 +460,9 @@ def getexplistinfo(explist):
 
 
 def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, runbasename, log_weights, gpuidx):
+    print(f"{datafile=}")
+    print(f"{maskednodes=}")
+    print(f"{partition=}")
     #TODO maybe it will not hurt to create DataProcessor once for a split 
     #(now they are created for every classifier from scratch)
     train_list = []
@@ -542,11 +545,8 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
                     
             runtime = time.time() - starttime
             print(comdet,":", score)
-            if type(score) is dict:
-                runresult = score
-                runresult["time"] = runtime
-            else:            
-                runresult = {"f1macro": score, "time" :runtime}
+            runresult = score
+            runresult["time"] = runtime            
             expresults[comdet].append(runresult)
 
 
@@ -559,6 +559,8 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
         inferredlabels = []
         for node in cleannodes:
             print("infering class for node", node)
+            print(cleantestdataframes[node])
+            cleantestdataframes[node].to_csv("temp.csv")
             testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node, gpu ) 
             print("clean test classification", testresult)
             inferredlabels.append( testresult )
@@ -652,9 +654,14 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
         for exp_idx in range(fromexp, toexp):            
             exp = datasetexplist[exp_idx]
             
-            datafile = os.path.join(workdir, exp["datafile"])
+            if "maskednodes" in exp:
+                datafile = os.path.join(workdir, exp["maskedfile"])
+            else:
+                datafile = os.path.join(workdir, exp["datafile"])
+                
+                
             
-            with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
+            with open(os.path.join(workdir, exp["splitfile"]),"r") as f:
                 partitions = json.load(f)
             
             log_weights = exp["crossvalidation"]["log_weights"] 
@@ -671,15 +678,23 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             datasetstarttime = time.time()
             #1. all heuristics for all partitions at once
             if len(heurlist)>0:
+                #if we have masked labels, we should use dataset and split with them removed
                 starttime = time.time()
-                heuresult = runheur(rng, datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None)
-                runtime = time.time() - starttime
-                #save only selected by user
-                #TODO update to new format
+                if "maskednodes" in exp:
+                    heurdatafile = os.path.join(workdir, exp["removedfile"])
+                    with open(os.path.join(workdir, exp["removedsplitfile"]),"r") as f:
+                        rempartitions = json.load(f)
+                    heurpartitions = rempartitions["partitions"]
+                else:
+                    heurdatafile = datafile
+                    heurpartitions = partitions["partitions"]
+                heuresult = runheur(rng, heurdatafile, partitions=heurpartitions, conseq=False, debug=False, filter_params = None)
+                runtime = time.time() - starttime                
                 for heurclass in heurlist: 
                     expresults[heurclass] = [ {"f1_macro": res, 
                                                "time": runtime/len(heuresult[heurclass]["values"]) 
                                               } for res in heuresult[heurclass]["values"] ]
+            
             #2. GNNs and MLPs partition by partition
             #if clean test is requiered we prepare dataframes with just one unlabelled node
             if "cleanfile" in exp:
@@ -733,10 +748,6 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                     with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
                         json.dump(result, f, indent=4, sort_keys=True)
 
-                        
-
-
-                
 
 def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, rundir, nnclass, gnn=True, logweights=False, gpu=0, maskednodes=None):
     '''
