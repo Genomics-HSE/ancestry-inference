@@ -114,7 +114,7 @@ def collectmacrosforstoredpartitions(grph, labels, labeldict, pairs, trns, ncls,
             featuremacro[feature].append(f1s[feature])   
     return featuremacro
 
-def run(rng, datafile, valshare=None, testshare=None, itercount=None, partitions=None, conseq=False, debug=True, filter_params = None):
+def run(datafile, valshare=None, testshare=None, itercount=None, partitions=None, conseq=False, debug=True, filter_params = None, rng=None):
     if debug:
         print("====================================")
     
@@ -161,7 +161,7 @@ def runheuristics(workdir, infile, rng):
             with open(os.path.join(workdir, exp["partitionfile"]),"r") as f:
                 partitions = json.load(f)
             
-            runresult = run(rng, datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None)
+            runresult = run(datafile, partitions=partitions["partitions"], conseq=False, debug=False, filter_params = None, rng =rng)
             datasetresults.append(runresult)
         result[dataset] = datasetresults
     return result
@@ -183,4 +183,4 @@ if __name__=="__main__":
     #dataset1fname = datapath+"Western-Europe_weights_partial_labels.csv"
     # test1: random partitions
     print("\n test1: generated partitions")
-    run(rng, dataset1fname, valshare, testshare, itercount)
+    run(dataset1fname, valshare, testshare, itercount, rng=rng)

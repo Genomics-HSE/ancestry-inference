@@ -1,6 +1,7 @@
 import click
 import numpy as np
 import time
+from multiprocessing import Pool
 
 from .utils import simulate as sim 
 from .utils import runheuristic
@@ -119,7 +120,8 @@ def simulate(workdir, infile, outfile, seed):
 #     start = time.time()
 #     sim.runandsavegnn(workdir, infile, outfile, rng)
 #     print(f"Finished! Total {time.time()-start:.2f}s.")
-
+def combine_splits(partresults):
+    return {"hello":"TODO"}
     
 #STAGE5 TEST HEURISTICS, COMMUNITY DETECTIONS AND TRAIN&TEST NNs
 @cli.command()
@@ -127,23 +129,60 @@ def simulate(workdir, infile, outfile, seed):
 @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
 @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
 @click.option("--seed", default=2023, help="Random seed")
+@click.option("--processes", default=1, help="Number of parallel splits")
 @click.option("--fromexp", default=None, help="The first experiment to run")
-@click.option("--toexp", default=None, help="Last experiment to run")
+@click.option("--toexp", default=None, help="Last experiment (not included)")
+@click.option("--fromsplit", default=None, help="The first split to run")
+@click.option("--tosplit", default=None, help="Last split (not included)")
 @click.option("--gpu", default=0, help="GPU")
-def crossval(workdir, infile, outfile, seed, fromexp, toexp, gpu):
+@click.option("--gpucount", default=1, help="GPU count")
+def crossval(workdir, infile, outfile, seed, processes, fromexp, toexp, fromsplit, tosplit, gpu, gpucount):
     """Run crossvalidation for classifiers including heuristics, community detections, GNNs and MLP networks"""     
     rng = np.random.default_rng(seed)  
     if outfile is None:
         #try to remove .ancinf from infile
         position = infile.find('.explist')
         if position>0:
-            outfile = infile[:position]+'.result'
+            outfilebase = infile[:position]
         else:
-            outfile = infile+'.result'
+            outfilebase = infile
+    else:
+        outfilebase = outfile
+    
     start = time.time()            
-    sim.runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu)
+    if processes == 1:
+        sim.runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tosplit, gpu)
+    else:                
+        
+        one_arg_call = get_one_arg_call(workdir, infile, outfilebase, fromexp, toexp)
+        splitnums = range(int(fromsplit), int(tosplit))
+        
+        with Pool(processes) as p:
+            resfiles = p.map(one_arg_call, splitnums)
+        
+        #now combine results        
+        if (fromexp is None) and (toexp is None):
+            outfile_exp_postfix = ""
+        else:
+            outfile_exp_postfix = "_e" + str(fromexp) +"-"+ str(toexp)  
+        outfile_split_postfix = "_s" + str(fromsplit) +"-"+ str(tosplit)
+        outfilename = outfilebase+outfile_exp_postfix+outfile_split_postfix+'.results'
+        partresults = []
+        for partresultfile in resfiles:
+            with open(partresultfile,"r") as f:
+                partresults.append(json.load(f))
+        combined_results=combine_splits(partresults)        
+        
+        with open(os.path.join(workdir, outfilename),"w", encoding="utf-8") as f:
+            json.dump(combined_results, f, indent=4, sort_keys=True)
+        
     print(f"Finished! Total {time.time()-start:.2f}s.")    
 
+def get_one_arg_call(workdir, infile, outfilebase, fromexp, toexp):   
+    def one_arg_call(splitnum):
+        return sim.runandsaveall(workdir, infile, outfilebase, fromexp, toexp, splitnum, splitnum+1, splitnum%gpucount)
+        
+    return one_arg_call
 #INFERENCE STAGES
     
     

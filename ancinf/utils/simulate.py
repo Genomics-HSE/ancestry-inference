@@ -22,6 +22,7 @@ import numpy as np
 import random
 import sys
 from sklearn.metrics import f1_score
+import shutil
 
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(''), os.path.pardir)))
 from .genlink import DataProcessor, BaselineMethods, NullSimulator, Trainer,  TAGConv_3l_128h_w_k3, \
@@ -608,7 +609,7 @@ def compiledsresults(expresults, fullist):
 
 
 
-def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
+def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tosplit, gpu):
     #loop through dataset
     #  loop through experiments (different
     #    loop though splits
@@ -618,7 +619,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
         explist = json.load(f)    
     totalruncount, expcount = getexplistinfo(explist)
     
-    no_postfix = (fromexp is None) and (toexp is None)
+    no_exp_postfix = (fromexp is None) and (toexp is None)
     if fromexp is None:
         fromexp = 0
     else:
@@ -628,19 +629,12 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
     else:
         toexp = int(toexp)
     
-    if no_postfix:
-        outfile_postfix = ""
+    if no_exp_postfix:
+        outfile_exp_postfix = ""
     else:
-        outfile_postfix = "_" + str(fromexp) +"-"+ str(toexp)
+        outfile_exp_postfix = "_e" + str(fromexp) +"-"+ str(toexp)    
+    runfolder = outfilebase+outfile_exp_postfix  + "_runs"
     
-    #try to remove .ancinf from outfile
-    position = outfile.find('.result')    
-    if position>0:
-        outfile = outfile[:position]+outfile_postfix + '.result'
-        runfolder = outfile[:position]+outfile_postfix  + "_runs"
-    else:
-        outfile = outfile+outfile_postfix
-        runfolder = outfile + "_runs"
     
     print(f"We will process experiments from [{fromexp} to {toexp}) on gpu {gpu}")
     
@@ -664,6 +658,24 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             with open(os.path.join(workdir, exp["splitfile"]),"r") as f:
                 partitions = json.load(f)
             
+            total_split_count = exp["crossvalidation"]["split_count"] 
+            
+            no_split_postfix = (fromsplit is None) and (tosplit is None)
+            if fromsplit is None:
+                fromsplit = 0
+            else:
+                fromsplit = int(fromsplit)
+            if tosplit is None:
+                tosplit = total_split_count
+            else:
+                tosplit = int(tosplit)
+            if no_split_postfix:
+                outfile_split_postfix = ""
+            else:
+                outfile_split_postfix = "_s" + str(fromsplit) +"-"+ str(tosplit)
+            outfile = outfilebase+outfile_exp_postfix+outfile_split_postfix+'.results'
+            
+            
             log_weights = exp["crossvalidation"]["log_weights"] 
             heurlist = exp["crossvalidation"]["heuristics"] 
             comdetlist = exp["crossvalidation"]["community_detection"]
@@ -677,7 +689,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             datasetstart = datetime.datetime.now().strftime("%H:%M on %d %B %Y")
             datasetstarttime = time.time()
             #1. all heuristics for all partitions at once
-            if len(heurlist)>0:
+            if len(heurlist)>0 and (fromsplit==0):
                 #if we have masked labels, we should use dataset and split with them removed
                 starttime = time.time()
                 if "maskednodes" in exp:
@@ -688,7 +700,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                 else:
                     heurdatafile = datafile
                     heurpartitions = partitions["partitions"]
-                heuresult = runheur(rng, heurdatafile, partitions=heurpartitions, conseq=False, debug=False, filter_params = None)
+                heuresult = runheur(heurdatafile, partitions=heurpartitions, conseq=False, debug=False, filter_params = None)
                 runtime = time.time() - starttime                
                 for heurclass in heurlist: 
                     expresults[heurclass] = [ {"f1_macro": res, 
@@ -718,8 +730,9 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
             else:
                 maskednodes = None
 
-            
-            for part_idx, partition in enumerate(partitions["partitions"]):
+            #begin partition loop
+            for part_idx in range(fromsplit, tosplit):
+                partition = partitions["partitions"][part_idx]
                 print(f"=========== Run {runidx} of {totalruncount} ======================")
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
                 processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu )
@@ -731,7 +744,7 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                                       "exp_idx": exp_idx, "full": fullres } 
                 
                 result[dataset] = datasetresults
-                with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
+                with open(os.path.join(workdir, outfile+'.incomplete'),"w", encoding="utf-8") as f:
                     json.dump(result, f, indent=4, sort_keys=True)  
                 
                 runidx+=1
@@ -745,10 +758,13 @@ def runandsaveall(workdir, infile, outfile, rng, fromexp, toexp, gpu):
                                              "clean_values":cleanexpresults[nnclass]} )                        
                         datasetresults[-1]["brief"][nnclass]["f1macro_clean"] = np.average(cleanexpresults[nnclass])
                     result[dataset] = datasetresults
-                    with open(os.path.join(workdir, outfile),"w", encoding="utf-8") as f:
+                    with open(os.path.join(workdir, outfile+'.incomplete'),"w", encoding="utf-8") as f:
                         json.dump(result, f, indent=4, sort_keys=True)
-
-
+            #end partition loop
+    shutil.move(os.path.join(workdir, outfile+'.incomplete'), os.path.join(workdir, outfile))
+    return os.path.join(workdir, outfile)       
+            
+            
 def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, rundir, nnclass, gnn=True, logweights=False, gpu=0, maskednodes=None):
     '''
         returns f1 macro for one experiment
