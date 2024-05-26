@@ -185,8 +185,11 @@ class DataProcessor:
         return G
         
     def get_classes(self, df):
-        # return ['карачаевцы,балкарцы', 'осетины', 'кабардинцы,черкесы,адыгейцы','ингуши','кумыки','ногайцы','чеченцы','дагестанские народы']
-        return pd.concat([df['label_id1'], df['label_id2']], axis=0).unique().tolist()
+        classes = pd.concat([df['label_id1'], df['label_id2']], axis=0).unique().tolist()
+        if 'masked' in classes:
+            classes = classes + ['masked']
+            classes.remove('masked')
+        return classes
 
     def get_unique_nodes(self, df):
         return pd.concat([df['node_id1'], df['node_id2']], axis=0).drop_duplicates().to_numpy()
