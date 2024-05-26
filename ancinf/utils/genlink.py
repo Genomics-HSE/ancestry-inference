@@ -472,15 +472,18 @@ class DataProcessor:
             num_classes = len(self.classes)
         features = np.zeros((len(all_nodes), num_classes))
         for n in all_nodes:
-            if n in specific_nodes:
-                features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
             if mask_nodes is not None:
                 if n in mask_nodes:
+                    features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
+                elif n in specific_nodes:
                     features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
                 else:
                     features[hashmap[int(n)], :] = [1 if i == dict_node_classes[n] else 0 for i in range(num_classes)]     
             else:
-                features[hashmap[int(n)], :] = [1 if i == dict_node_classes[n] else 0 for i in range(num_classes)]
+                if n in specific_nodes:
+                    features[hashmap[int(n)], :] = [1 / num_classes] * num_classes
+                else:
+                    features[hashmap[int(n)], :] = [1 if i == dict_node_classes[n] else 0 for i in range(num_classes)]
 
         return features
     
@@ -588,6 +591,7 @@ class DataProcessor:
             else:
                 features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
                                                               dict_node_classes, mask_nodes=self.mask_nodes)
+            print(features[-1, :])
             assert np.sum(np.array(features).sum(axis=1) == 0) == 0
         elif feature_type == 'graph_based':
             if masking:
