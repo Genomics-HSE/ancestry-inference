@@ -754,10 +754,10 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
                     print("Running clean inference test")                
                     runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu)  
                     for nnclass in cleanexpresults:
-                        datasetresults[-1]["full"][nnclass]["f1macro"].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
+                        datasetresults[-1]["full"][nnclass]["f1_macro"].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
                                              "clean_std": np.std(cleanexpresults[nnclass]), 
                                              "clean_values":cleanexpresults[nnclass]} )                        
-                        datasetresults[-1]["brief"][nnclass]["f1macro_clean"] = np.average(cleanexpresults[nnclass])
+                        datasetresults[-1]["brief"][nnclass]["f1_macro_clean"] = np.average(cleanexpresults[nnclass])
                     result[dataset] = datasetresults
                     with open(os.path.join(workdir, outfile+'.incomplete'),"w", encoding="utf-8") as f:
                         json.dump(result, f, indent=4, sort_keys=True)

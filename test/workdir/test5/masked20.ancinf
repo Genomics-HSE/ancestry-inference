@@ -15,7 +15,7 @@
     },
     "crossvalidation":
     {        
-        "maskshare": 0.2,
+        "maskshare": 0.75,
         "valshare": 0.2,
         "testshare": 0.2,
         "split_count": 1,
