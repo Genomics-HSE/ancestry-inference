@@ -562,7 +562,8 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
             print("infering class for node", node)
             print(cleantestdataframes[node])
             cleantestdataframes[node].to_csv("temp.csv")
-            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node, gpu ) 
+            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node, gpu, test_type='one_hot' )
+            #TODO fix test_type depending on the network
             print("clean test classification", testresult)
             inferredlabels.append( testresult )
         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
@@ -781,11 +782,11 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
             train_dataset_type = 'multiple'
         dp.make_train_valid_test_datasets_with_numba(features, 'homogeneous', train_dataset_type, 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
         trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
-                      features, 50, 10, cuda_device_specified=gpu)
+                      features, 50, 10, cuda_device_specified=gpu, masking = masking)
     else:#mlp        
         dp.make_train_valid_test_datasets_with_numba('graph_based', 'homogeneous', 'one', 'multiple', rundir, log_edge_weights=logweights, masking=masking)    
         trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 50,
-                      'graph_based', 50, 10, cuda_device_specified=gpu)
+                      'graph_based', 50, 10, cuda_device_specified=gpu, masking = masking)
     
     return trainer.run()           
 
