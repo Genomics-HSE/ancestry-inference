@@ -591,7 +591,6 @@ class DataProcessor:
             else:
                 features = self.make_one_hot_encoded_features(curr_nodes, [specific_node], hashmap,
                                                               dict_node_classes, mask_nodes=self.mask_nodes)
-            print(features[-1, :])
             assert np.sum(np.array(features).sum(axis=1) == 0) == 0
         elif feature_type == 'graph_based':
             if masking:
