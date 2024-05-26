@@ -948,7 +948,10 @@ class Trainer:
         self.learning_rate = lr
         self.weight_decay = wd
         self.loss_fn = loss_fn
-        self.weight = torch.tensor([1. for i in range(len(self.data.classes))]).to(self.device) if weight is None else weight
+        if masking:
+            self.weight = torch.tensor([1. for i in range(len(self.data.classes)-1)]).to(self.device) if weight is None else weight
+        else:
+            self.weight = torch.tensor([1. for i in range(len(self.data.classes))]).to(self.device) if weight is None else weight
         self.batch_size = batch_size # not used by far
         self.log_dir = log_dir
         self.patience = patience
