@@ -663,17 +663,17 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
             
             no_split_postfix = (fromsplit is None) and (tosplit is None)
             if fromsplit is None:
-                fromsplit = 0
+                dsfromsplit = 0
             else:
-                fromsplit = int(fromsplit)
+                dsfromsplit = int(fromsplit)
             if tosplit is None:
-                tosplit = total_split_count
+                dstosplit = total_split_count
             else:
-                tosplit = int(tosplit)
+                dstosplit = int(tosplit)
             if no_split_postfix:
                 outfile_split_postfix = ""
             else:
-                outfile_split_postfix = "_s" + str(fromsplit) +"-"+ str(tosplit)
+                outfile_split_postfix = "_s" + str(dsfromsplit) +"-"+ str(dstosplit)
             outfile = outfilebase+outfile_exp_postfix+outfile_split_postfix+'.results'
             
             
@@ -690,7 +690,7 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
             datasetstart = datetime.datetime.now().strftime("%H:%M on %d %B %Y")
             datasetstarttime = time.time()
             #1. all heuristics for all partitions at once
-            if len(heurlist)>0 and (fromsplit==0):
+            if len(heurlist)>0 and (dsfromsplit==0):
                 #if we have masked labels, we should use dataset and split with them removed
                 starttime = time.time()
                 if "maskednodes" in exp:
@@ -732,7 +732,7 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
                 maskednodes = None
 
             #begin partition loop
-            for part_idx in range(fromsplit, tosplit):
+            for part_idx in range(dsfromsplit, dstosplit):
                 partition = partitions["partitions"][part_idx]
                 print(f"=========== Run {runidx} of {totalruncount} ======================")
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
