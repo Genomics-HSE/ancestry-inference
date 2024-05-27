@@ -5,7 +5,7 @@ from multiprocessing import Pool
 
 from .utils import simulate as sim 
 from .utils import runheuristic
-
+import json, os
 
 #@click.option("--count", default=1, help="Number of greetings.")
 #@click.option("--name", prompt="Your name", help="The person to greet.")
@@ -121,7 +121,11 @@ def simulate(workdir, infile, outfile, seed):
 #     sim.runandsavegnn(workdir, infile, outfile, rng)
 #     print(f"Finished! Total {time.time()-start:.2f}s.")
 def combine_splits(partresults):
-    return {"hello":"TODO"}
+    return {"hello":partresults}
+
+def runandsavewrapper(args):
+    return sim.runandsaveall(args["workdir"], args["infile"], args["outfilebase"], args["fromexp"], args["toexp"], 
+                             args["fromsplit"], args["tosplit"], args["gpu"])
     
 #STAGE5 TEST HEURISTICS, COMMUNITY DETECTIONS AND TRAIN&TEST NNs
 @cli.command()
@@ -152,13 +156,21 @@ def crossval(workdir, infile, outfile, seed, processes, fromexp, toexp, fromspli
     start = time.time()            
     if processes == 1:
         sim.runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tosplit, gpu)
-    else:                
-        
-        one_arg_call = get_one_arg_call(workdir, infile, outfilebase, fromexp, toexp)
+    else:              
         splitnums = range(int(fromsplit), int(tosplit))
         
+        taskargs = [{"workdir":workdir, 
+                     "infile":infile, 
+                     "outfilebase":outfilebase, 
+                     "fromexp":fromexp, 
+                     "toexp":toexp, 
+                     "fromsplit":splitnum, 
+                     "tosplit":splitnum+1, 
+                     "gpu":splitnum%gpucount}  for splitnum in splitnums]
+        print(taskargs)
+        
         with Pool(processes) as p:
-            resfiles = p.map(one_arg_call, splitnums)
+            resfiles = p.map(runandsavewrapper, taskargs)
         
         #now combine results        
         if (fromexp is None) and (toexp is None):
@@ -178,11 +190,7 @@ def crossval(workdir, infile, outfile, seed, processes, fromexp, toexp, fromspli
         
     print(f"Finished! Total {time.time()-start:.2f}s.")    
 
-def get_one_arg_call(workdir, infile, outfilebase, fromexp, toexp):   
-    def one_arg_call(splitnum):
-        return sim.runandsaveall(workdir, infile, outfilebase, fromexp, toexp, splitnum, splitnum+1, splitnum%gpucount)
-        
-    return one_arg_call
+
 #INFERENCE STAGES
     
     
