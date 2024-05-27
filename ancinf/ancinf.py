@@ -120,8 +120,65 @@ def simulate(workdir, infile, outfile, seed):
 #     start = time.time()
 #     sim.runandsavegnn(workdir, infile, outfile, rng)
 #     print(f"Finished! Total {time.time()-start:.2f}s.")
-def combine_splits(partresults):
-    return {"hello":partresults}
+    
+
+def combine_splits(partresults):    
+    result = {}
+    for partres in partresults:
+        #include values from partresults
+        for dataset in partres:            
+            if dataset in result:
+                #existing dataset. list experiments and find new
+                existing_exp_ids = [ exp["exp_idx"] for exp in result[dataset] ]
+                for exp in partres[dataset]: 
+                    if exp["exp_idx"] in existing_exp_ids:
+                        #existing experiment, find it
+                        for res_exp in result[dataset]:
+                            if res_exp["exp_idx"] == exp["exp_idx"]:
+                                break
+                        res_exp["dataset_time"] += exp["dataset_time"]
+                        #now list classifiers and add split scores
+                        #classifiers should be the same
+                        for classifier in exp["classifiers"]:
+                            for metric in exp["classifiers"][classifier]:
+                                if metric!="class_scores":
+                                    res_exp["classifiers"][classifier][metric]["values"].extend(exp["classifiers"][classifier][metric]["values"])        
+                                else:
+                                    for pop in exp["classifiers"][classifier]["class_scores"]:
+                                        res_exp["classifiers"][classifier][metric][pop]["values"].extend(exp["classifiers"][classifier][metric][pop]["values"])        
+                            
+                    else:
+                        #new experiment
+                        result[dataset].append(exp)
+                        result[dataset][-1]["dataset_begin"] = "multiprocessing"
+                        result[dataset][-1]["dataset_end"] = "multiprocessing"
+                        
+            else:
+                #new dataset
+                result[dataset] = partres[dataset]
+                for exp in result[dataset]:
+                    exp["dataset_begin"] = "multiprocessing"
+                    exp["dataset_end"] = "multiprocessing"
+            #print(result[dataset])
+    #recompute mean and std
+    for dataset in result:
+        for exp in result[dataset]:
+            for classifier in exp["classifiers"]:
+                for metric in exp["classifiers"][classifier]:
+                    metricresults = exp["classifiers"][classifier][metric]
+                    if metric!="class_scores":
+                        metricresults["mean"] = np.average(metricresults["values"])
+                        metricresults["std"] = np.std(metricresults["values"])
+                        if "clean_mean" in metricresults:
+                            metricresults["clean_mean"] = np.average(metricresults["clean_values"])
+                            metricresults["clean_std"] = np.std(metricresults["clean_values"])
+                    else: 
+                        for cl in metricresults:
+                            metricresults[cl]["mean"] = np.average(metricresults[cl]["values"])
+                            metricresults[cl]["std"] = np.std(metricresults[cl]["values"])
+                        
+                        
+    return {"brief": sim.getbrief(result), "details":result}
 
 def runandsavewrapper(args):
     return sim.runandsaveall(args["workdir"], args["infile"], args["outfilebase"], args["fromexp"], args["toexp"], 
@@ -182,7 +239,7 @@ def crossval(workdir, infile, outfile, seed, processes, fromexp, toexp, fromspli
         partresults = []
         for partresultfile in resfiles:
             with open(partresultfile,"r") as f:
-                partresults.append(json.load(f))
+                partresults.append(json.load(f)["details"])
         combined_results=combine_splits(partresults)        
         
         with open(os.path.join(workdir, outfilename),"w", encoding="utf-8") as f:

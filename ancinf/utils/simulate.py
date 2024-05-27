@@ -582,9 +582,10 @@ def getbrief(fullres):
                      }
             for classifier in exp["classifiers"]:
                 expres["classifiers"][classifier] = {}
-                expres["classifiers"][classifier]["f1_macro_mean"] = exp["classifiers"][classifier]["f1_macro"]["mean"]
-                if "clean_mean" in exp["classifiers"][classifier]["f1_macro"]:
-                    expres["classifiers"][classifier]["f1_macro_mean_clean"] = exp["classifiers"][classifier]["f1_macro"]["clean_mean"]
+                if "f1_macro" in exp["classifiers"][classifier]:
+                    expres["classifiers"][classifier]["f1_macro_mean"] = exp["classifiers"][classifier]["f1_macro"]["mean"]
+                    if "clean_mean" in exp["classifiers"][classifier]["f1_macro"]:
+                        expres["classifiers"][classifier]["f1_macro_mean_clean"] = exp["classifiers"][classifier]["f1_macro"]["clean_mean"]
                 
             briefres[dataset].append(expres)
         
@@ -767,6 +768,7 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
                 result[dataset] = datasetresults
                 
                 with open(os.path.join(workdir, outfile+'.incomplete'),"w", encoding="utf-8") as f:
+                    #print(result)
                     json.dump({"brief": getbrief(result), "details":result}, f, indent=4, sort_keys=True)  
                 
                 runidx+=1
