@@ -569,13 +569,33 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')
         cleanexpresults[nnclass].append(runresult)
 
+def getbrief(fullres):
+    briefres = {}
+    for dataset in fullres: 
+        briefres[dataset]=[]
+        for exp in fullres[dataset]: #fullres[dataset] is a list of the ds exps
+            expres = { "dataset_begin": exp["dataset_begin"],
+                       "dataset_end": exp["dataset_end"],
+                       "dataset_time": exp["dataset_time"],
+                       "exp_idx": exp["exp_idx"],
+                       "classifiers":{}
+                     }
+            for classifier in exp["classifiers"]:
+                expres["classifiers"][classifier] = {}
+                expres["classifiers"][classifier]["f1_macro_mean"] = exp["classifiers"][classifier]["f1_macro"]["mean"]
+                if "clean_mean" in exp["classifiers"][classifier]["f1_macro"]:
+                    expres["classifiers"][classifier]["f1_macro_mean_clean"] = exp["classifiers"][classifier]["f1_macro"]["clean_mean"]
+                
+            briefres[dataset].append(expres)
+        
+    return briefres
         
 def compiledsresults(expresults, fullist):
     dsres = {}
-    dsbrief = {}
+    #dsbrief = {}
     for nnclass in fullist:
         dsres[nnclass] = {}
-        dsbrief[nnclass] = {}
+        #dsbrief[nnclass] = {}
         if expresults[nnclass]!=[]:
             metrics = expresults[nnclass][0]            
             for metric in metrics:
@@ -604,9 +624,9 @@ def compiledsresults(expresults, fullist):
                 else:
                     dsres[nnclass][metric]["mean"] = np.average(dsres[nnclass][metric]["values"])
                     dsres[nnclass][metric]["std"] = np.std(dsres[nnclass][metric]["values"])            
-            for metric in ["f1_macro", "time"]:                
-                dsbrief[nnclass][metric] = dsres[nnclass][metric]["mean"]
-    return dsres, dsbrief
+            #for metric in ["f1_macro", "time"]:                
+                #dsbrief[nnclass][metric] = dsres[nnclass][metric]["mean"]
+    return dsres#, dsbrief
 
 
 
@@ -737,16 +757,17 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
                 print(f"=========== Run {runidx} of {totalruncount} ======================")
                 run_base_name = os.path.join(workdir, runfolder, "run_"+dataset+"_exp"+str(exp_idx)+"_split"+str(part_idx))
                 processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, mlplist, comdetlist, fullist, runidx, run_base_name, log_weights, gpu )
-                fullres, briefres = compiledsresults(expresults, fullist)                
+                fullres = compiledsresults(expresults, fullist)                
                 datasetfinish = datetime.datetime.now().strftime("%H:%M on %d %B %Y")
                 datasetfinishtime = time.time()
-                datasetresults[-1] = {"brief": briefres, "complete_splits": part_idx+1, "dataset_begin": datasetstart, "dataset_end": datasetfinish, 
+                datasetresults[-1] = {"dataset_begin": datasetstart, "dataset_end": datasetfinish, 
                                       "dataset_time": datasetfinishtime - datasetstarttime,
-                                      "exp_idx": exp_idx, "full": fullres } 
+                                      "exp_idx": exp_idx, "classifiers": fullres } 
                 
                 result[dataset] = datasetresults
+                
                 with open(os.path.join(workdir, outfile+'.incomplete'),"w", encoding="utf-8") as f:
-                    json.dump(result, f, indent=4, sort_keys=True)  
+                    json.dump({"brief": getbrief(result), "details":result}, f, indent=4, sort_keys=True)  
                 
                 runidx+=1
                 #now clean test if requested
@@ -754,13 +775,12 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
                     print("Running clean inference test")                
                     runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu)  
                     for nnclass in cleanexpresults:
-                        datasetresults[-1]["full"][nnclass]["f1_macro"].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
+                        datasetresults[-1]["classifiers"][nnclass]["f1_macro"].update({"clean_mean": np.average(cleanexpresults[nnclass]), 
                                              "clean_std": np.std(cleanexpresults[nnclass]), 
-                                             "clean_values":cleanexpresults[nnclass]} )                        
-                        datasetresults[-1]["brief"][nnclass]["f1_macro_clean"] = np.average(cleanexpresults[nnclass])
+                                             "clean_values":cleanexpresults[nnclass]} )                                               
                     result[dataset] = datasetresults
                     with open(os.path.join(workdir, outfile+'.incomplete'),"w", encoding="utf-8") as f:
-                        json.dump(result, f, indent=4, sort_keys=True)
+                        json.dump({"brief": getbrief(result), "details":result}, f, indent=4, sort_keys=True)
             #end partition loop
     shutil.move(os.path.join(workdir, outfile+'.incomplete'), os.path.join(workdir, outfile))
     return os.path.join(workdir, outfile)       
