@@ -711,7 +711,23 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
             comdetlist = exp["crossvalidation"]["community_detection"]
             mlplist = exp["crossvalidation"]["mlps"]
             gnnlist = exp["crossvalidation"]["gnns"]            
-            fullist = heurlist + comdetlist + mlplist + gnnlist
+            fullist = []
+            if type(heurlist) is list:
+                fullist = fullist + heurlist
+            else:
+                fullist = fullist + list(heurlist.keys())
+            if type(comdetlist) is list:
+                fullist = fullist + comdetlist
+            else:
+                fullist = fullist + list(comdetlist.keys())
+            if type(mlplist) is list:
+                fullist = fullist + mlplist
+            else:
+                fullist = fullist + list(mlplist.keys())
+            if type(gnnlist) is list:
+                fullist = fullist + gnnlist
+            else:
+                fullist = fullist + list(gnnlist.keys())
             
             expresults = {nnclass:[] for nnclass in fullist} 
             datasetresults.append(expresults) #({nnclass: {"mean": -1, "std": -1, "values":[]} for nnclass in fullist})
