@@ -483,9 +483,13 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
     #gnn
     for gnnclass in gnnlist:
         run_name = runbasename + "_"+gnnclass
+        if type(gnnlist) is dict:
+            model_params = gnnlist[gnnclass]
+        else:
+            model_params = {}
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, gnnclass, gnn=True, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes)
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, gnnclass, gnn=True, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes, model_params = model_params)
         runtime = time.time() - starttime
         runresult["time"] = runtime        
         print("RUN COMPLETE!", gnnclass, runresult)        
@@ -494,9 +498,13 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
     #mlp
     for mlpclass in mlplist:
         run_name = runbasename +"_"+mlpclass
+        if type(gnnlist) is dict:
+            model_params = gnnlist[gnnclass]
+        else:
+            model_params = {}
         print("NEW RUN:", run_name)
         starttime = time.time()
-        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, mlpclass, gnn=False, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes )
+        runresult = simplified_genlink_run(datafile, train_split, valid_split, test_split, run_name, mlpclass, gnn=False, logweights=log_weights, gpu=gpuidx, maskednodes=maskednodes, model_params = model_params )
         runtime = time.time() - starttime
         runresult["time"] = runtime        
         print("RUN COMPLETE!", mlpclass, runresult)
@@ -788,7 +796,7 @@ def runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tospl
     return os.path.join(workdir, outfile)       
             
             
-def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, rundir, nnclass, gnn=True, logweights=False, gpu=0, maskednodes=None):
+def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split, rundir, nnclass, gnn=True, logweights=False, gpu=0, maskednodes=None, model_params={}):
     '''
         returns f1 macro for one experiment
     '''
@@ -804,11 +812,11 @@ def simplified_genlink_run(dataframe_path, train_split, valid_split, test_split,
             train_dataset_type = 'multiple'
         dp.make_train_valid_test_datasets_with_numba(features, 'homogeneous', train_dataset_type, 'multiple', rundir, log_edge_weights=logweights, masking = masking)    
         trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 20,
-                      features, 50, 10, cuda_device_specified=gpu, masking = masking)
+                      features, 50, 10, cuda_device_specified=gpu, masking = masking, model_params = model_params)
     else:#mlp        
         dp.make_train_valid_test_datasets_with_numba('graph_based', 'homogeneous', 'one', 'multiple', rundir, log_edge_weights=logweights, masking=masking)    
         trainer = Trainer(dp, NNs[nnclass], 0.0001, 5e-5, torch.nn.CrossEntropyLoss, 10, rundir, 2, 50,
-                      'graph_based', 50, 10, cuda_device_specified=gpu, masking = masking)
+                      'graph_based', 50, 10, cuda_device_specified=gpu, masking = masking, model_params = model_params)
     
     return trainer.run()           
 
