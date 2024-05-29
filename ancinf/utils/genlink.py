@@ -995,10 +995,8 @@ class Trainer:
         self.disable_printing = disable_printing
         self.optimize_memory_transfer = optimize_memory_transfer
         
-        print(self.learning_rate)
         for k, v in model_params.items():
             setattr(self, k, v)
-        print(self.learning_rate)
 
     def compute_metrics_cross_entropy(self, graphs, mask=False, phase=None):
         y_true = []
