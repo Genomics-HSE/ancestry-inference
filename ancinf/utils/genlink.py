@@ -1,7 +1,9 @@
+import gc
 import os
 import time
 import torch
 import pickle
+import random
 import itertools
 import numpy as np
 import pandas as pd
@@ -945,37 +947,13 @@ class NullSimulator:
 
 
 
-                        
-                        
-class GraphDataset(TensorDataset):
-    def __init__(self, array_of_graphs):
-        self.samples=array_of_graphs
-         
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self,index):
-        return self.samples[index]
-
-
-
-
 class Trainer:
-    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, feature_type, train_iterations_per_sample, evaluation_steps, weight=None, cuda_device_specified: int = None, masking=False, disable_printing=True, optimize_memory_transfer=True, model_params=None):
-        # print(locals())
-        # print(globals())
-        # if model_params is not None:
-        #     globals().update(model_params)
-        # print(model_params)
-        # print(lr)
-        # lr = 0.123
-        # print(lr)
+    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, feature_type, train_iterations_per_sample, evaluation_steps, weight=None, cuda_device_specified: int = None, masking=False, disable_printing=True, optimize_memory_transfer=True, model_params=None, seed=42):
         self.data = data
         self.model = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if cuda_device_specified is None else torch.device(f'cuda:{cuda_device_specified}' if torch.cuda.is_available() else 'cpu')
         self.model_cls = model_cls
         self.learning_rate = lr
-        print(self.learning_rate)
         self.weight_decay = wd
         self.loss_fn = loss_fn
         if masking:
@@ -994,6 +972,7 @@ class Trainer:
         self.masking = masking
         self.disable_printing = disable_printing
         self.optimize_memory_transfer = optimize_memory_transfer
+        self.seed = seed
         
         for k, v in model_params.items():
             setattr(self, k, v)
@@ -1109,11 +1088,24 @@ class Trainer:
             fig, ax = plt.subplots(1, 1)
             sns.heatmap(cm, annot=True, fmt=".2f", ax=ax)
             plt.show()
+            
+        self.model = None
+        gc.collect() # Python thing
+        torch.cuda.empty_cache() # PyTorch thing
 
         return {'f1_macro': f1_macro_score, 'f1_weighted': f1_weighted_score, 'accuracy':acc, 'class_scores': f1_macro_score_per_class, 'skipped_nodes': len(self.data.test_nodes) - len(self.data.array_of_graphs_for_testing)}
         
 
     def run(self):
+        torch.manual_seed(self.seed)
+        torch.cuda.manual_seed(self.seed)
+        torch.cuda.manual_seed_all(self.seed)  # if you are using multi-GPU.
+        np.random.seed(self.seed)
+        random.seed(self.seed)
+        torch.manual_seed(self.seed)
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         self.model = self.model_cls(self.data.array_of_graphs_for_training[0]).to(self.device) # just initialize the parameters of the model
