@@ -214,16 +214,29 @@ def crossval(workdir, infile, outfile, seed, processes, fromexp, toexp, fromspli
     if processes == 1:
         sim.runandsaveall(workdir, infile, outfilebase, fromexp, toexp, fromsplit, tosplit, gpu)
     else:              
-        splitnums = range(int(fromsplit), int(tosplit))
+        #get every process only one job computing splitrange aforehead
+        splitcount = int(tosplit)-int(fromsplit)
+        splitsperproc = splitcount // processes
+        splitincrements = [splitsperproc]*processes
+        for idx in range(splitcount % processes):
+            splitincrements[idx] +=1
+        splitrange = [int(fromsplit)] 
+        incr = 0
+        for idx in range(processes):
+            incr += splitincrements[idx]
+            splitrange.append(int(fromsplit)+incr)
+            
+        
+        print("Split seprarators:", splitrange)
         
         taskargs = [{"workdir":workdir, 
                      "infile":infile, 
                      "outfilebase":outfilebase, 
                      "fromexp":fromexp, 
                      "toexp":toexp, 
-                     "fromsplit":splitnum, 
-                     "tosplit":splitnum+1, 
-                     "gpu":splitnum%gpucount}  for splitnum in splitnums]
+                     "fromsplit":splitrange[procnum], 
+                     "tosplit":splitrange[procnum+1], 
+                     "gpu":procnum%gpucount}  for procnum in range(processes)]
         print(taskargs)
         
         with Pool(processes) as p:
