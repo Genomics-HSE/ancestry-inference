@@ -12,10 +12,12 @@ import torch.nn as nn
 from sklearn import metrics
 from multiprocessing import Pool
 from collections import OrderedDict
+import numba
 from numba import njit, prange
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from scipy.spatial.distance import squareform
+from torch.utils.data import TensorDataset, DataLoader
 from scipy.cluster.hierarchy import dendrogram, linkage
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.model_selection import KFold
@@ -152,7 +154,7 @@ def simulate_graph_fn(classes, means, counts, pop_index, path):
 
 
 class DataProcessor:
-    def __init__(self, path, is_path_object=False):
+    def __init__(self, path, is_path_object=False, disable_printing=True):
         self.dataset_name: str = None
         self.train_size: float = None
         self.valid_size: float = None
@@ -173,6 +175,7 @@ class DataProcessor:
         self.array_of_graphs_for_training = []
         self.array_of_graphs_for_validation = []
         self.array_of_graphs_for_testing = []
+        self.disable_printing = disable_printing
         # self.rng = np.random.default_rng(42)
         
     def make_networkx_graph(self):
@@ -594,10 +597,10 @@ class DataProcessor:
             assert np.sum(np.array(features).sum(axis=1) == 0) == 0
         elif feature_type == 'graph_based':
             if masking:
-                features = self.make_graph_based_features(df.to_numpy(), hashmap, [specific_node] + self.mask_nodes, len(self.classes)-1, len(curr_nodes))
+                features = self.make_graph_based_features(df.to_numpy(), hashmap, numba.typed.List([specific_node] + self.mask_nodes), len(self.classes)-1, len(curr_nodes))
                 node_mask = self.get_mask(curr_nodes, self.mask_nodes)
             else:
-                features = self.make_graph_based_features(df.to_numpy(), hashmap, [specific_node], len(self.classes), len(curr_nodes))
+                features = self.make_graph_based_features(df.to_numpy(), hashmap, numba.typed.List([specific_node]), len(self.classes), len(curr_nodes))
         else:
             raise Exception('Such feature type is not known!')
         targets = self.construct_node_classes(curr_nodes, dict_node_classes)
@@ -637,12 +640,12 @@ class DataProcessor:
             if train_dataset_type == 'multiple' and test_dataset_type == 'multiple':
                 dict_node_classes = self.node_classes_to_dict()
                 df_for_training = self.df.copy()
-                drop_rows = self.drop_rows_for_training_dataset(self.df.to_numpy(), self.valid_nodes + self.test_nodes)
+                drop_rows = self.drop_rows_for_training_dataset(self.df.to_numpy(), numba.typed.List(self.valid_nodes + self.test_nodes))
                 df_for_training = df_for_training.drop(drop_rows)
 
                 # make training samples
                 if not skip_train_val:
-                    for k in tqdm(range(len(self.train_nodes)), desc='Make train samples'):
+                    for k in tqdm(range(len(self.train_nodes)), desc='Make train samples', disable=self.disable_printing):
                         if masking:
                             curr_train_nodes, specific_node = self.place_specific_node_to_the_end(self.train_nodes + self.mask_nodes, k)
                         else:
@@ -662,7 +665,7 @@ class DataProcessor:
                         rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                        np.array(self.train_nodes),
                                                                                        np.array(self.valid_nodes))
-                    for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples'):
+                    for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples', disable=self.disable_printing):
                         rows_for_adding = rows_for_adding_per_node[k]
                         df_for_validation = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
 
@@ -689,7 +692,7 @@ class DataProcessor:
                     rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                    np.array(self.train_nodes),
                                                                                    np.array(self.test_nodes))
-                for k in tqdm(range(len(self.test_nodes)), desc='Make test samples'):
+                for k in tqdm(range(len(self.test_nodes)), desc='Make test samples', disable=self.disable_printing):
                     rows_for_adding = rows_for_adding_per_node[k]
                     df_for_testing = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
 
@@ -711,12 +714,12 @@ class DataProcessor:
             if train_dataset_type == 'one' and test_dataset_type == 'multiple':
                 dict_node_classes = self.node_classes_to_dict()
                 df_for_training = self.df.copy()
-                drop_rows = self.drop_rows_for_training_dataset(self.df.to_numpy(), self.valid_nodes + self.test_nodes)
+                drop_rows = self.drop_rows_for_training_dataset(self.df.to_numpy(), numba.typed.List(self.valid_nodes + self.test_nodes))
                 df_for_training = df_for_training.drop(drop_rows)
 
                 # make training samples
                 if not skip_train_val:
-                    for k in tqdm(range(1), desc='Make train samples'):
+                    for k in tqdm(range(1), desc='Make train samples', disable=self.disable_printing):
 
                         if masking:
                             current_train_nodes = self.train_nodes + self.mask_nodes
@@ -737,7 +740,7 @@ class DataProcessor:
                         rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                            np.array(self.train_nodes),
                                                                                            np.array(self.valid_nodes))
-                    for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples'):
+                    for k in tqdm(range(len(self.valid_nodes)), desc='Make valid samples', disable=self.disable_printing):
                         rows_for_adding = rows_for_adding_per_node[k]
                         df_for_validation = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
 
@@ -764,7 +767,7 @@ class DataProcessor:
                     rows_for_adding_per_node = self.find_connections_to_nodes(self.df.to_numpy(),
                                                                                        np.array(self.train_nodes),
                                                                                        np.array(self.test_nodes))
-                for k in tqdm(range(len(self.test_nodes)), desc='Make test samples'):
+                for k in tqdm(range(len(self.test_nodes)), desc='Make test samples', disable=self.disable_printing):
                     rows_for_adding = rows_for_adding_per_node[k]
                     df_for_testing = pd.concat([df_for_training, self.df.iloc[rows_for_adding]], axis=0)
 
@@ -942,16 +945,37 @@ class NullSimulator:
 
 
 
+                        
+                        
+class GraphDataset(TensorDataset):
+    def __init__(self, array_of_graphs):
+        self.samples=array_of_graphs
+         
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self,index):
+        return self.samples[index]
+
 
 
 
 class Trainer:
-    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, feature_type, train_iterations_per_sample, evaluation_steps, weight=None, cuda_device_specified: int = None, masking=False):
+    def __init__(self, data: DataProcessor, model_cls, lr, wd, loss_fn, batch_size, log_dir, patience, num_epochs, feature_type, train_iterations_per_sample, evaluation_steps, weight=None, cuda_device_specified: int = None, masking=False, disable_printing=True, optimize_memory_transfer=True, model_params=None):
+        # print(locals())
+        # print(globals())
+        # if model_params is not None:
+        #     globals().update(model_params)
+        # print(model_params)
+        # print(lr)
+        # lr = 0.123
+        # print(lr)
         self.data = data
         self.model = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if cuda_device_specified is None else torch.device(f'cuda:{cuda_device_specified}' if torch.cuda.is_available() else 'cpu')
         self.model_cls = model_cls
         self.learning_rate = lr
+        print(self.learning_rate)
         self.weight_decay = wd
         self.loss_fn = loss_fn
         if masking:
@@ -968,13 +992,20 @@ class Trainer:
         self.train_iterations_per_sample = train_iterations_per_sample
         self.evaluation_steps = evaluation_steps
         self.masking = masking
+        self.disable_printing = disable_printing
+        self.optimize_memory_transfer = optimize_memory_transfer
+        
+        print(self.learning_rate)
+        for k, v in model_params.items():
+            setattr(self, k, v)
+        print(self.learning_rate)
 
     def compute_metrics_cross_entropy(self, graphs, mask=False, phase=None):
         y_true = []
         y_pred = []
 
         if self.feature_type == 'one_hot':
-            for i in tqdm(range(len(graphs)), desc='Compute metrics'):
+            for i in tqdm(range(len(graphs)), desc='Compute metrics', disable=self.disable_printing):
                 p = F.softmax(self.model(graphs[i].to(self.device))[-1],
                               dim=0).cpu().detach().numpy()
                 y_pred.append(np.argmax(p))
@@ -982,7 +1013,7 @@ class Trainer:
                 graphs[i].to('cpu')
         elif self.feature_type == 'graph_based':
             if not mask:
-                for i in tqdm(range(len(graphs)), desc='Compute metrics'):
+                for i in tqdm(range(len(graphs)), desc='Compute metrics', disable=self.disable_printing):
                     if phase=='training':
                         p = F.softmax(self.model(graphs[i].to(self.device)),
                                       dim=0).cpu().detach().numpy()
@@ -997,7 +1028,7 @@ class Trainer:
                         raise Exception('No such phase!')
                     graphs[i].to('cpu')
             else:
-                for i in tqdm(range(len(graphs)), desc='Compute metrics'):
+                for i in tqdm(range(len(graphs)), desc='Compute metrics', disable=self.disable_printing):
                     if phase=='training':
                         p = F.softmax(self.model(graphs[i].to(self.device)),
                                       dim=0).cpu().detach().numpy()
@@ -1022,46 +1053,55 @@ class Trainer:
 
         y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_validation, mask=mask, phase='scoring')
 
-        print('Evaluation report')
-        print(classification_report(y_true, y_pred))
+        if not self.disable_printing:
+            print('Evaluation report')
+            print(classification_report(y_true, y_pred))
         for i in range(len(self.data.classes)):
             if self.data.classes[i] != 'masked':
                 score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
-                print(f"f1 macro score on valid dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+                if not self.disable_printing:
+                    print(f"f1 macro score on valid dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
 
         current_f1_score_macro = f1_score(y_true, y_pred, average='macro')
         if current_f1_score_macro > self.max_f1_score_macro:
             self.patience_counter = 0
             self.max_f1_score_macro = current_f1_score_macro
-            print(f'f1 macro improvement to {self.max_f1_score_macro}')
+            if not self.disable_printing:
+                print(f'f1 macro improvement to {self.max_f1_score_macro}')
             torch.save(self.model.state_dict(), self.log_dir + '/model_best.bin')
         else:
             self.patience_counter += 1
-            print(f'Metric was not improved for the {self.patience_counter}th time')
+            if not self.disable_printing:
+                print(f'Metric was not improved for the {self.patience_counter}th time')
 
     def test(self, plot_cm=False, mask=False):
         self.model = self.model_cls(self.data.array_of_graphs_for_training[0]).to(self.device)
         self.model.load_state_dict(torch.load(self.log_dir + '/model_best.bin'))
         self.model.eval()
         y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_testing, mask=mask, phase='scoring')
-        print('Test report')
-        print(classification_report(y_true, y_pred))
+        if not self.disable_printing:
+            print('Test report')
+            print(classification_report(y_true, y_pred))
         
         f1_macro_score = f1_score(y_true, y_pred, average='macro')
-        print(f"f1 macro score on test dataset: {f1_macro_score}")
+        if not self.disable_printing:
+            print(f"f1 macro score on test dataset: {f1_macro_score}")
         
         f1_weighted_score = f1_score(y_true, y_pred, average='weighted')
-        print(f"f1 weighted score on test dataset: {f1_weighted_score}")
+        if not self.disable_printing:
+            print(f"f1 weighted score on test dataset: {f1_weighted_score}")
         
         acc = accuracy_score(y_true, y_pred)
-        print(f"accuracy score on test dataset: {acc}")
+        if not self.disable_printing:
+            print(f"accuracy score on test dataset: {acc}")
         
         f1_macro_score_per_class = dict()
         
         for i in range(len(self.data.classes)):
             if self.data.classes[i] != 'masked':
                 score_per_class = f1_score(y_true, y_pred, average='macro', labels=[i])
-                print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
+                if not self.disable_printing:
+                    print(f"f1 macro score on test dataset for class {i} which is {self.data.classes[i]}: {score_per_class}")
                 f1_macro_score_per_class[self.data.classes[i]] = score_per_class
 
         cm = confusion_matrix(y_true, y_pred)
@@ -1088,7 +1128,7 @@ class Trainer:
 
         if self.loss_fn == torch.nn.CrossEntropyLoss:
             if self.feature_type == 'one_hot':
-                for i in tqdm(range(self.num_epochs), desc='Training epochs'):
+                for i in tqdm(range(self.num_epochs), desc='Training epochs', disable=self.disable_printing):
                     if self.patience_counter == self.patience:
                         break
                     self.evaluation(i)
@@ -1100,9 +1140,9 @@ class Trainer:
 
                     mean_epoch_loss = []
 
-                    pbar = tqdm(range(len(selector)), desc='Training samples')
+                    pbar = tqdm(range(len(selector)), desc='Training samples', disable=self.disable_printing)
                     pbar.set_postfix({'val_best_score': self.max_f1_score_macro})
-                    for j in pbar:
+                    for j, data_curr in enumerate(pbar):
                         n = selector[j]
                         data_curr = self.data.array_of_graphs_for_training[n].to(self.device)
                         optimizer.zero_grad()
@@ -1116,21 +1156,23 @@ class Trainer:
 
                     y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training)
 
-                    print('Training report')
-                    print(classification_report(y_true, y_pred))
+                    if not self.disable_printing:
+                        print('Training report')
+                        print(classification_report(y_true, y_pred))
                     
             elif self.feature_type == 'graph_based':
                 if self.masking:
                     data_curr = self.data.array_of_graphs_for_training[0].to(self.device)
                     self.model.train()
-                    for i in tqdm(range(self.train_iterations_per_sample), desc='Training iterations'):
+                    for i in tqdm(range(self.train_iterations_per_sample), desc='Training iterations', disable=self.disable_printing):
                         if self.patience_counter == self.patience:
                             break
                         if i % self.evaluation_steps == 0:
                             y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training, mask=True, phase='training')
 
-                            print('Training report')
-                            print(classification_report(y_true, y_pred))
+                            if not self.disable_printing:
+                                print('Training report')
+                                print(classification_report(y_true, y_pred))
 
                             self.data.array_of_graphs_for_training[0].to('cpu')
                             self.evaluation(i, mask=True)
@@ -1146,14 +1188,15 @@ class Trainer:
                 else:
                     data_curr = self.data.array_of_graphs_for_training[0].to(self.device)
                     self.model.train()
-                    for i in tqdm(range(self.train_iterations_per_sample), desc='Training iterations'):
+                    for i in tqdm(range(self.train_iterations_per_sample), desc='Training iterations', disable=self.disable_printing):
                         if self.patience_counter == self.patience:
                             break
                         if i % self.evaluation_steps == 0:
                             y_true, y_pred = self.compute_metrics_cross_entropy(self.data.array_of_graphs_for_training, phase='training')
 
-                            print('Training report')
-                            print(classification_report(y_true, y_pred))
+                            if not self.disable_printing:
+                                print('Training report')
+                                print(classification_report(y_true, y_pred))
 
                             self.data.array_of_graphs_for_training[0].to('cpu')
                             self.evaluation(i)

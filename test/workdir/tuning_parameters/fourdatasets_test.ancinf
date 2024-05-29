@@ -15,28 +15,29 @@
     },
     "crossvalidation":
     {        
-        "cleanshare": 0.2,
         "valshare": 0.2,
         "testshare": 0.2,
-        "split_count": 1,
+        "split_count": 10,
         "log_weights": "False",
         "heuristics": ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"],
         "community_detection": [],
         "mlps": [],
-        "gnns": {"TAGConv_3l_512h_w_k3":{"learning_rate":0.123, "param2":34}
-                }
+        "gnns": ["TAGConv_3l_512h_w_k3"]        
     },
     "datasets":
-    {        
-        "Arrakis_full_labels": 
-        { 
+    {
+        "Volga_weights_partial_labels":
+        {
             "filters":
             {
                 "only": [],
-                "minclassize": 0,
-                "removeclasses": ["Ordos"]
+                "minclassize": 49, 
+                "removeclasses": ["Finns", "Poles", "English", "Karelians,Veps", "Norwegians", "Mordvins",
+                                  "Dolgans,Yakuts", "Kazakhs", "Ashkenazim", "Belarusians", "Swedes", 
+                                  "Ukrainians", "Germans", "Lithuanians", "Bashkirs", "Russians" ]
             }
         }
+       
     }
 
 }

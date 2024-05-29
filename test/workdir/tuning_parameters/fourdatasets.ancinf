@@ -1,0 +1,83 @@
+{   
+    "experiments":{        
+        "population_scale": [1.0],
+        "diag_edge_probability_scale": [1.0],
+        "nondg_edge_probability_scale": [1],
+        "diag_weight_scale": [1],
+        "nondg_weight_scale": [1],
+        "all_edge_probability_scale": [1],
+        "all_weight_scale": [1]
+    },
+    "simulator":
+    {
+        "type": "exponential",
+        "offset": 8.0    
+    },
+    "crossvalidation":
+    {        
+        "valshare": 0.2,
+        "testshare": 0.2,
+        "split_count": 10,
+        "log_weights": "False",
+        "heuristics": ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"],
+        "community_detection": [],
+        "mlps": ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"],
+        "gnns": ["TAGConv_9l_512h_nw_k3",
+                    "TAGConv_9l_128h_k3",                    
+                    "TAGConv_3l_128h_w_k3",
+                    "TAGConv_3l_512h_w_k3",
+                    "GINNet",
+                    "AttnGCN",
+                    "GCNConv_3l_128h_w",
+                    "TAGConv_9l_512h_nw_k3_gb",
+                    "TAGConv_9l_128h_k3_gb",                    
+                    "TAGConv_3l_128h_w_k3_gb",
+                    "TAGConv_3l_512h_w_k3_gb",
+                    "GINNet_gb",
+                    "AttnGCN_gb",
+                    "GCNConv_3l_128h_w_gb"
+                    ]        
+    },
+    "datasets":
+    {
+        "Scandinavia_weights_partial_labels": 
+        { 
+            "filters":
+            {
+                "only": [],
+                "minclassize": 190,
+                "removeclasses": ["Russians", "Tatars,Volga-Tatars,Mishar-Tatars,Kryashens", "English", "Finns"]
+            }
+        },
+        "Volga_weights_partial_labels":
+        {
+            "filters":
+            {
+                "only": [],
+                "minclassize": 49, 
+                "removeclasses": ["Finns", "Poles", "English", "Karelians,Veps", "Norwegians", "Mordvins",
+                                  "Dolgans,Yakuts", "Kazakhs", "Ashkenazim", "Belarusians", "Swedes", 
+                                  "Ukrainians", "Germans", "Lithuanians", "Bashkirs", "Russians" ]
+            }
+        },
+        "NC_graph_rel":
+        {
+            "filters":
+            {
+                "only": [],
+                "minclassize": 0,
+                "removeclasses": []
+            }
+        },
+        "Western-Europe_weights_partial_labels":
+        {
+            "filters":
+            {
+                "only": [],
+                "minclassize": 348, 
+                "removeclasses": ["Ashkenazim", "Russians"]
+            }
+        }
+    }
+
+}
