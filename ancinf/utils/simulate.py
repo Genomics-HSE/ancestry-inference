@@ -558,9 +558,34 @@ def processpartition_nn(expresults, datafile, partition, maskednodes, gnnlist, m
             runresult["time"] = runtime            
             expresults[comdet].append(runresult)
 
-
-
             
+            
+def inference(workdir, traindf, inferdf, model, model_weights, gpu=0):
+    #1. get ids of every unknown node         
+    inferredlabels = []
+    
+    dfmain = pd.read_csv(traindf)
+    dfclean = pd.read_csv(inferdf)    
+    #find them
+    pairs, weights, labels, labeldict, idxtranslator = load_pure( inferdf, debug=False)
+    unklblidx = labeldict["unknown"]
+    cleannodes = list( idxtranslator[ labels == unklblidx ] )
+    print("unknown nodes:", cleannodes)
+    print("weights path:", model_weights)    
+    for node in cleannodes:
+        print("infering class for node", node)
+        fltr1 = dfclean[dfclean["node_id1"] =="node_" +str(node)]                    
+        fltr2 = dfclean[dfclean["node_id2"] =="node_" +str(node)]                                        
+        onenodedf = pd.concat([dfmain, fltr1, fltr2])                    
+        df = onenodedf.reset_index(drop=True)                         
+        #TODO fix test_type depending on the network
+        testresult = independent_test(model_weights, NNs[model], df, node, gpu, test_type='one_hot' )        
+        print("inference results", testresult)
+        inferredlabels.append( testresult )
+    
+    return cleannodes, inferredlabels
+    
+           
 
 def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdataframes, gnnlist, run_base_name, gpu):
     for nnclass in gnnlist:
@@ -569,9 +594,9 @@ def runcleantest(cleanexpresults, cleannodes, cleannodelabels, cleantestdatafram
         for node in cleannodes:
             print("infering class for node", node)
             print(cleantestdataframes[node])
-            cleantestdataframes[node].to_csv("temp.csv")
-            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node, gpu, test_type='one_hot' )
+            #cleantestdataframes[node].to_csv("temp.csv")
             #TODO fix test_type depending on the network
+            testresult = independent_test(run_name, NNs[nnclass], cleantestdataframes[node], node, gpu, test_type='one_hot' )            
             print("clean test classification", testresult)
             inferredlabels.append( testresult )
         runresult = f1_score(cleannodelabels, inferredlabels, average='macro')

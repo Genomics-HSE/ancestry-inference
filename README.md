@@ -11,6 +11,8 @@ After stages 1 or 1' the project work directory becomes independent of the data 
 
 After stage 3 the best weights for selected neural networks are kept, so they can later be used for inference.
 
+4. Training dataset + trained model weights + dataset with edges from nodes with unknown label to training dataset ---(stage4)---> .inferred file
+
 # I. Preprocessing and simulation
 
 ## Stage 1. Collect dataset parameters (requires original datasets)
@@ -93,34 +95,55 @@ simulateandsave(workdir, "smallproject.params", "smallproject.explist", rng)
 
 # II. Cross-validation 
 
-## Stage 3. Compute metrics for basic heuristics: 
+## Stage 3. Compute metrics for selected classifiers: 
 Input: Original or simulated datasets, train-validate-test splits, file with a list of experiments
 
 Output: f1 macro srores for selected classifiers
 
 Command line:
 ```
-Usage: python3 -m ancinf heuristics [OPTIONS] WORKDIR
+Usage: python -m ancinf crossval [OPTIONS] WORKDIR
 
   Run crossvalidation for classifiers including heuristics, community
   detections, GNNs and MLP networks
 
 Options:
-  --infile TEXT   File with experiment list, defaults to project.explist
-  --outfile TEXT  File with classification metrics, defaults to project 
-                  file with '.result' extension
-  --seed INTEGER  Random seed
+  --infile TEXT        File with experiment list, defaults to project.explist
+  --outfile TEXT       File with classification metrics, defaults to project
+                       file with '.result' extension
+  --seed INTEGER       Random seed
+  --processes INTEGER  Number of parallel workers
+  --fromexp INTEGER    The first experiment to run
+  --toexp INTEGER      Last experiment (not included)
+  --fromsplit INTEGER  The first split to run
+  --tosplit INTEGER    Last split (not included)
+  --gpu INTEGER        GPU
+  --gpucount INTEGER   GPU count
 ```
 
-Python import: 
-```
-from ancinf.utils.simulate import runandsaveall
-runandsaveall(workdir, 'project.explist', 'project.results', rng)
-```
 
 # III. Inference 
 
-TODO
+## Stage 4. Inference 
+
+Input: datasets for train and inference, model weights
+
+Output: inference results
+
+```
+Usage: python -m ancinf infer [OPTIONS] WORKDIR TRAINDF INFERDF MODEL WEIGHTS
+
+  traindf: Dataset on which the model was trained
+
+  inferdf, Dataset with nodes with classes to be inferred (labelled 'unknown')
+
+  model: Model name
+
+  weights: Weights file
+```
+
+# IV. Utilities
+## Combine .result files from a folder
 
 
 # Project file format
@@ -148,4 +171,35 @@ TODO
  - "heuristics": list of heuristic classifiers to be used in cross-validation. Possible values: ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"]
  - "community_detection": list of community detection algorithms to be used in cross-validation. Possible values: ["Spectral", "Agglomerative", "Girvan-Newmann", "LabelPropagation", "RelationalNeighbor"].
  - "mlps": list of multilayer perceptron architecture NN classifiers to be used in cross-validation. Possible values: ["MLP_3l_128h", "MLP_3l_512h", "MLP_9l_128h", "MLP_9l_512h"]
- - "gnns": list of graph neural network classifiers to be used in cross-validation. Possible values: ["TAGConv_9l_512h_nw_k3", "TAGConv_9l_128h_k3",  "TAGConv_3l_128h_w_k3", "TAGConv_3l_512h_w_k3", "GINNet", "AttnGCN", "GCNConv_3l_128h_w"] 
+ - "gnns": list of graph neural network classifiers to be used in cross-validation. Possible values: ["TAGConv_9l_512h_nw_k3", 
+                    "TAGConv_9l_128h_k3",                    
+                    "TAGConv_3l_128h_w_k3",
+                    "TAGConv_3l_512h_w_k3",
+                    "TAGConv_9l_512h_nw_k3_gb",
+                    "TAGConv_9l_128h_k3_gb",                    
+                    "TAGConv_3l_128h_w_k3_gb",
+                    "TAGConv_3l_512h_w_k3_gb",
+                    "GCNConv_3l_128h_w",
+                    "GCNConv_3l_128h_w_gb",
+                    "GINNet",
+                    "GINNet_narrow_short", 
+                    "GINNet_wide_short", 
+                    "GINNet_narrow_long", 
+                    "GINNet_wide_long",
+                    "GINNet_gb",
+                    "GINNet_narrow_short_gb", 
+                    "GINNet_wide_short_gb", 
+                    "GINNet_narrow_long_gb", 
+                    "GINNet_wide_long_gb",
+                    "AttnGCN",
+                    "AttnGCN_narrow_short", 
+                    "AttnGCN_wide_short", 
+                    "AttnGCN_narrow_long", 
+                    "AttnGCN_wide_long",
+                    "AttnGCN_gb",
+                    "AttnGCN_narrow_short_gb", 
+                    "AttnGCN_wide_short_gb", 
+                    "AttnGCN_narrow_long_gb", 
+                    "AttnGCN_wide_long_gb"]
+
+5. To pass non-default neural net parameters or training parameters it is possible to change "gnns" or "mlps" list into dictionary with keys from the list above and values of dict with corresponding parameter names and values.

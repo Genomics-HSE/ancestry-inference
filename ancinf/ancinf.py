@@ -81,47 +81,7 @@ def simulate(workdir, infile, outfile, seed):
     print(f"Finished! Total {time.time()-start:.2f}s")
     
     
-# #STAGE3 HEURISTICS
-# @cli.command()
-# @click.argument("workdir")
-# @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
-# @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
-# @click.option("--seed", default=2023, help="Random seed")
-# def heuristics(workdir, infile, outfile, seed):
-#     """Run heuristics"""
-#     rng = np.random.default_rng(seed)
-#     if outfile is None:
-#         #try to remove .ancinf from infile
-#         position = infile.find('.explist')
-#         if position>0:
-#             outfile = infile[:position]+'.result'
-#         else:
-#             outfile = infile+'.result'
-#     start = time.time()
-#     runheuristic.runandsaveheuristics(workdir, infile, outfile, rng)
-#     print(f"Finished! Total {time.time()-start:.2f}s")
-    
-# #STAGE4 GNN    
-# @cli.command()
-# @click.argument("workdir")
-# @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
-# @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
-# @click.option("--seed", default=2023, help="Random seed")
-# def gnn(workdir, infile, outfile, seed):
-#     """Run gnns"""     
-#     rng = np.random.default_rng(seed)  
-#     if outfile is None:
-#         #try to remove .ancinf from infile
-#         position = infile.find('.explist')
-#         if position>0:
-#             outfile = infile[:position]+'.result'
-#         else:
-#             outfile = infile+'.result'
-#     start = time.time()
-#     sim.runandsavegnn(workdir, infile, outfile, rng)
-#     print(f"Finished! Total {time.time()-start:.2f}s.")
-    
-
+# #STAGE3 HEURISTICS GNN etc
 def combine_splits(partresults):    
     result = {}
     for partres in partresults:
@@ -190,7 +150,7 @@ def runandsavewrapper(args):
 @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
 @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
 @click.option("--seed", default=2023, help="Random seed")
-@click.option("--processes", default=1, help="Number of parallel splits")
+@click.option("--processes", default=1, help="Number of parallel workers")
 @click.option("--fromexp", default=None, help="The first experiment to run")
 @click.option("--toexp", default=None, help="Last experiment (not included)")
 @click.option("--fromsplit", default=None, help="The first split to run")
@@ -261,40 +221,30 @@ def crossval(workdir, infile, outfile, seed, processes, fromexp, toexp, fromspli
     print(f"Finished! Total {time.time()-start:.2f}s.")    
 
 
-#INFERENCE STAGES
+#STAGE 4 INFERENCE
+@cli.command()
+@click.argument("workdir")
+@click.argument("traindf")
+@click.argument("inferdf")
+@click.argument("model")
+@click.argument("weights")
+def infer(workdir, traindf, inferdf, model, weights):
+    """
+    traindf: Dataset on which the model was trained
     
+    inferdf, Dataset with nodes with classes to be inferred (labelled 'unknown')
     
-# #GNN DEBUG&TEST STAGES
-# @cli.command()
-# @click.argument("workdir")
-# @click.option("--infile", default="project.explist", help="File with experiment list, defaults to project.explist")
-# @click.option("--outfile", default=None, help="File with classification metrics, defaults to project file with '.result' extension")
-# @click.option("--seed", default=2023, help="Random seed")
-# def gnncleancheck(workdir, traindfname, infdfname):
-#     '''
-#     #-> traindataframe, one-node-infdataframe, node_idname, model, weights 
-#     #for every node in inferencedf
-#     #1. create train+one-node-infdataframe
-#     #2. send to inference
-#     #3. compare with true 
-#     '''
-#     pass
+    model: Model name
     
-    
-# def preparecleancheck(workdir, datafilename, cleanshare, seed):
-#     '''
-#         get dataframe and split into train-test-val (1-cleanshare for every class) 
-#         and clean-test (share for every class)
-#     '''
-#     rng = np.random.default_rng(seed)  
-#     position = datafilename.find('.csv')
-#     if position>0:
-#         outfile = infile[:position]+'.result'
-#     else:
-#         outfile = infile+'.result'
-#     tranfilename = 
-#     cleanfilename = 
-#     sim.preparecleancheck(workdir, datafilename, trainfilename, cleanfilename, cleanshare, rng)
-    
+    weights: Weights file
+    """
+    nodes, labels = sim.inference(workdir, traindf, inferdf, model, weights)
+    outfilename = inferdf+".inferred"
+    result = {"node_"+str(node):lbl for node, lbl in zip(nodes, labels)}
+        
+    with open(os.path.join(workdir, outfilename),"w", encoding="utf-8") as f:
+            json.dump(result, f, indent=4, sort_keys=True)
+
+
 def main():
     cli()
