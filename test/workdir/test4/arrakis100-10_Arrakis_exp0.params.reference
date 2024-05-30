@@ -1,0 +1,97 @@
+{
+    "crossvalidation": {
+        "cleanshare": 0.1,
+        "community_detection": [
+            "Spectral",
+            "Agglomerative",
+            "Girvan-Newmann"
+        ],
+        "gnns": [
+            "TAGConv_9l_512h_nw_k3",
+            "TAGConv_9l_128h_k3",
+            "GINNet",
+            "AttnGCN",
+            "TAGConv_3l_128h_w_k3",
+            "TAGConv_3l_512h_w_k3"
+        ],
+        "heuristics": [
+            "EdgeCount",
+            "EdgeCountPerClassize",
+            "SegmentCount",
+            "LongestIbd",
+            "IbdSum",
+            "IbdSumPerEdge"
+        ],
+        "log_weights": "False",
+        "mlps": [
+            "MLP_3l_128h",
+            "MLP_3l_512h",
+            "MLP_9l_128h",
+            "MLP_9l_512h"
+        ],
+        "split_count": 3,
+        "testshare": 0.2,
+        "valshare": 0.2
+    },
+    "datasets": {
+        "arrakis100-10_Arrakis_exp0": {
+            "edge_probability": [
+                [
+                    0.3088888888888889,
+                    0.0
+                ],
+                [
+                    0.0,
+                    0.3111111111111111
+                ]
+            ],
+            "mean_weight": [
+                [
+                    19.66199601817647,
+                    -1.0
+                ],
+                [
+                    -1.0,
+                    24.0715250049711
+                ]
+            ],
+            "pop_names": [
+                "Atreides",
+                "Sandworm"
+            ],
+            "pop_sizes": [
+                100,
+                10
+            ]
+        }
+    },
+    "experiments": {
+        "all_edge_probability_scale": [
+            1
+        ],
+        "all_weight_scale": [
+            1
+        ],
+        "diag_edge_probability_scale": [
+            0.5,
+            1.0,
+            1.5
+        ],
+        "diag_weight_scale": [
+            1
+        ],
+        "nondg_edge_probability_scale": [
+            1
+        ],
+        "nondg_weight_scale": [
+            1
+        ],
+        "population_scale": [
+            1.0
+        ]
+    },
+    "simulator": {
+        "offset": 8.0,
+        "type": "exponential"
+    }
+}
