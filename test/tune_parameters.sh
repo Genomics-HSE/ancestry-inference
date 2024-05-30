@@ -1,0 +1,2 @@
+python3 -m ancinf preprocess ../data/real_data/ ./workdir/tuning_parameters/ --infile fourdatasets_test.ancinf
+python3 -m ancinf crossval ./workdir/tuning_parameters/ --infile fourdatasets_test.explist --gpu 1

@@ -13,9 +13,9 @@ def load_data_from_file(file_path):
     return data
 
 def visualize_classifier_data(data, sort_bars=False, annotate=False):    
-    for dataset_name, experiments  in data.items():        
+    for dataset_name, experiments  in data["details"].items():        
         for experiment in experiments:
-            classifiers = experiment["full"]            
+            classifiers = experiment["classifiers"]            
             classifier_names = []
             means = []
             std_devs = []

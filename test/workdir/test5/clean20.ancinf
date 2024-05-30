@@ -1,0 +1,42 @@
+{   
+    "experiments":{        
+        "population_scale": [1.0],
+        "diag_edge_probability_scale": [1.0],
+        "nondg_edge_probability_scale": [1],
+        "diag_weight_scale": [1],
+        "nondg_weight_scale": [1],
+        "all_edge_probability_scale": [1],
+        "all_weight_scale": [1]
+    },
+    "simulator":
+    {
+        "type": "exponential",
+        "offset": 8.0    
+    },
+    "crossvalidation":
+    {        
+        "cleanshare": 0.2,
+        "valshare": 0.2,
+        "testshare": 0.2,
+        "split_count": 1,
+        "log_weights": "False",
+        "heuristics": ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"],
+        "community_detection": [],
+        "mlps": [],
+        "gnns": {"TAGConv_3l_512h_w_k3":{"learning_rate":0.123, "param2":34}
+                }
+    },
+    "datasets":
+    {        
+        "Arrakis_full_labels": 
+        { 
+            "filters":
+            {
+                "only": [],
+                "minclassize": 0,
+                "removeclasses": ["Ordos"]
+            }
+        }
+    }
+
+}
