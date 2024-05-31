@@ -40,10 +40,24 @@ def visualize_classifier_data(data, sort_bars=False, annotate=False):
                 df = df.sort_values('Mean', ascending=False)
 
             # Plotting
-            plt.figure(figsize=(10, 6))
+            plt.figure(figsize=(14, 6))
             sns.set(style="whitegrid")
+            
+            cols = []
+            color_model_scheme = {'GNN_graph_based':'red', 'GNN_one_hot':'#69b3a2', 'MLP':'orange', 'Heuristics':'blue', 'community_detection': 'pink'}
+            for model_name in df.Classifier:
+                if 'gb' in model_name:
+                    cols.append(color_model_scheme['GNN_graph_based'])
+                elif 'MLP' in model_name:
+                    cols.append(color_model_scheme['MLP'])
+                elif model_name in ["EdgeCount", "EdgeCountPerClassize", "SegmentCount", "LongestIbd", "IbdSum", "IbdSumPerEdge"]:
+                    cols.append(color_model_scheme['Heuristics'])
+                elif model_name in ["Spectral", "Agglomerative", "GirvanNewmann", "LabelPropagation", "RelationalNeighbor", "MultiRankWalk", "RidgeRegression"]:
+                    cols.append(color_model_scheme['community_detection'])
+                else:
+                    cols.append(color_model_scheme['GNN_one_hot'])
 
-            bar_plot = sns.barplot(x='Classifier', y='Mean', data=df, ci=None, color='#69b3a2')  # , palette="viridis")
+            bar_plot = sns.barplot(x='Classifier', y='Mean', data=df, ci=None, palette=cols)  # , palette="viridis")
 
             # Adding error bars
             for i, (mean, std) in enumerate(zip(df['Mean'], df['StdDev'])):
@@ -51,11 +65,16 @@ def visualize_classifier_data(data, sort_bars=False, annotate=False):
 
                 # Optionally annotate the bars with the exact mean values
                 if annotate:
-                    bar_plot.text(i, mean + std + 0.01, f'{mean:.2f}', ha='center', va='bottom', fontsize=8)
+                    bar_plot.text(i, mean + std + 0.01, f'{mean:.2f}', ha='center', va='bottom', fontsize=6)
+                    
+            
+            for k, v in color_model_scheme.items():
+                plt.scatter([],[], c=v, label=k)
 
             plt.title(f'Classifier Performance for {dataset_name}')
             plt.xlabel('Classifier')
             plt.ylabel('Mean Performance')
             plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better readability
+            plt.legend()
             plt.tight_layout()  # Adjust the layout to make room for the rotated labels
             plt.show()
